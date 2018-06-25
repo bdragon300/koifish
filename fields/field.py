@@ -73,30 +73,6 @@ class Field(object):
         self._get_callback = kwargs.get('get_callback')
         self._save_callback = kwargs.get('save_callback')
 
-    # def __copy__(self):
-    #     obj = self.__class__(
-    #         field_type=copy(self._field_type),
-    #         required=copy(self._required),
-    #         tags=copy(self._tags),
-    #         enum_cls=copy(self._enum_cls)
-    #     )
-    #     obj._name = copy(self._name)
-    #     obj._val = deepcopy(self._val)
-    #     return obj
-    #
-    # def __deepcopy__(self, memodict=None):
-    #     if memodict is None:
-    #         memodict = dict()
-    #     obj = self.__class__(
-    #         field_type=copy(self._field_type),
-    #         required=copy(self._required),
-    #         tags=copy(self._tags),
-    #         enum_cls=copy(self._enum_cls)
-    #     )
-    #     obj._name = copy(self._name)
-    #     obj._val = deepcopy(self._val)
-    #     return obj
-
     def __repr__(self):
         return "<{} '{}'> = {}".format(self.__class__.__name__, self._name, self._raw_val)
 
