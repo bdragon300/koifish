@@ -1,11 +1,11 @@
 import pytest
-from model import BaseLayer
+from model import BaseModelImpl
 
 
 class TestImpl:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.obj = BaseLayer()
+        self.obj = BaseModelImpl()
 
     def test_get(self):
         with pytest.raises(NotImplementedError):

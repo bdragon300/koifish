@@ -11,9 +11,9 @@ class ListResponse(collections.UserList):  # NOQA
     )
 
 
-class BaseLayer:
+class BaseModelImpl:
     """
-    Implementation layer with data manipulating methods
+    Model implementation with data manipulating methods
     """
     def get(self, pk, pk_value, **kwargs):
         """
