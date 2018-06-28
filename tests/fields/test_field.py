@@ -19,8 +19,16 @@ class TestField:
     def test_default_prop_values(self):
         obj = Field()
 
+        assert obj.primary_key is False
         assert obj.after_read is None
         assert obj.before_write is None
+
+    def test_primary_key_prop_initialized(self):
+        obj = Field(
+            primary_key=True
+        )
+
+        assert obj.primary_key is True
 
     def test_after_read_prop_initialized(self):
         obj = Field(

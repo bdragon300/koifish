@@ -23,6 +23,7 @@ class Field(bfields.Field):
         `model` instance as its first positional argument.
 
     :param required: If `True` this field value should not be `None`.
+    :param primary_key: `True` if this field is primary key in model. Default is `False`
     :param choices: Possible field values with values mapping (`dict` or `enum.Enum`) or without mapping (`list`).
 
         A `list` parameter simply sets values which this field can have. `dict` or `enum.Enum` parameters also set
@@ -52,6 +53,7 @@ class Field(bfields.Field):
         self.description = kwargs.get('description', '')
         self.required = kwargs.get('required', False)
         self.choices = kwargs.get('choices', [])
+        self.primary_key = kwargs.get('primary_key', False)
 
         # Setup field validators
         self.validators = []
