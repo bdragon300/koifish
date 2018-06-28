@@ -1,112 +1,273 @@
-from copy import copy, deepcopy
+import collections
 from enum import Enum
+
+import booby.fields as bfields
+import six
 from bidict import bidict
+from booby import decoders as builtin_decoders
+from booby import encoders as builtin_encoders
+from booby import validators as builtin_validators
 
 
-class Field(object):
-    """Model field class"""
-    @property
-    def field_type(self):
-        """Type that field have. Used for type control and type cast. Read-only property"""
-        return self._field_type
+class Field(bfields.Field):
+    """
+    Model field class
 
-    @property
-    def name(self):
-        """Field name. Read-only property"""
-        return self._name
+    :param default: This field `default`'s value.
 
-    @property
-    def required(self):
-        """Is this field is required to have a value. Read-only property"""
-        return self._required
+        If passed a callable object then uses its return value as the
+        field's default. This is particularly useful when working with
+        `mutable objects <http://effbot.org/zone/default-values.htm>`_.
 
-    @property
-    def tags(self):
-        """Tags associated with field"""
-        return self._tags
+        If `default` is a callable it can optionaly receive the owner
+        `model` instance as its first positional argument.
 
-    @property
-    def get_callback(self):
-        """Callback used to obtain field value"""
-        return self._get_callback
+    :param required: If `True` this field value should not be `None`.
+    :param choices: Possible field values with values mapping (`dict` or `enum.Enum`) or without mapping (`list`).
 
-    @property
-    def save_callback(self):
-        """Callback used to save field value"""
-        return self._save_callback
+        A `list` parameter simply sets values which this field can have. `dict` or `enum.Enum` parameters also set
+        mapping between field value and real model value. This behavior is similar to enums. Type validation applies to
+        a real value type.
+        E.g.:
 
-    @property
-    def val(self):
-        """Field value"""
-        return self._do_encode(self._field_type, self._raw_val)
+        class Car(Model):
+            color = Integer(choices={'BLUE': 0, 'RED': 1})
 
-    @val.setter
-    def val(self, value):
-        if value is None:
-            self._raw_val = None
+        car.color = 'RED'
+        print(car._data[car._fields['color']])  # real data stored in model
+
+        1
+
+    :param name: Specify an alternate key name to use when decoding and encoding.
+    :param read_only: If `True`, the value is treated normally in decoding but omitted during encoding.
+    :param after_read: Optional. Callback used to calculate field value. Calls after data has retrieved from
+        implementation layer
+    :param before_write: Optional. Callback used to change model before saving.
+    :param \*validators: A list of field :mod:`validators` as positional arguments.
+    """
+    def __init__(self, *validators, **kwargs):
+        self.options = kwargs
+
+        self.default = kwargs.get('default')
+        self.description = kwargs.get('description', '')
+        self.required = kwargs.get('required', False)
+        self.choices = kwargs.get('choices', [])
+
+        # Setup field validators
+        self.validators = []
+
+        if self.required:
+            self.validators.append(builtin_validators.Required())
+
+        if self.choices:
+            self._bi_mapping = self._init_bi_mapping(self.choices)
+            if self._bi_mapping:
+                self.validators = list(filter(lambda x: isinstance(x, builtin_validators.In), self.validators))
+                self.validators.append(builtin_validators.In(self._bi_mapping.values()))
+            else:
+                self.validators.append(builtin_validators.In(self.choices))
+
+        self.validators.extend(validators)
+
+        self.after_read = kwargs.get('after_read')
+        self.before_write = kwargs.get('before_write')
+
+    def __get__(self, instance, owner):
+        val = super().__get__(instance, owner)
+
+        if self._bi_mapping:
+            return self._bi_mapping.inv[val]
         else:
-            self._raw_val = self._do_decode(self._field_type, value)
+            return val
 
-    @property
-    def raw(self):
-        """Raw field value without typing"""
-        return self._raw_val
+    def __set__(self, instance, value):
+        if self._bi_mapping:
+            value = self._bi_mapping[value]
 
-    @raw.setter
-    def raw(self, value):
-        self._raw_val = value
+        super().__set__(instance, value)
 
-    def __init__(self, **kwargs):
-        """
-        :param field_type: Optional. Type of value. Builtin types, enum.Enum are allowed
-        :param required: Optional. If True then this field must have value
-        :param tags: Optional. Iterable with any tags you want to assign with the field
-        :param get_callback: Optional. Callback used to obtain field value, called after model data was obtained.
-        :param save_callback: Optional. Callback used to save field value, called before model data will be saved.
-        """
-        self._set_field_type(kwargs.get('field_type'))
-        self._required = kwargs.get('required', False)
-        self._tags = frozenset(kwargs.get('tags', ()))
-        self._raw_val = None
-        self._name = kwargs.get('_name')
-
-        self._get_callback = kwargs.get('get_callback')
-        self._save_callback = kwargs.get('save_callback')
-
-    def __repr__(self):
-        return "<{} '{}'> = {}".format(self.__class__.__name__, self._name, self._raw_val)
-
-    def __eq__(self, other):
-        raise TypeError('Cannot compare Field objects, compare their values instead')
-
-    def __ne__(self, other):
-        raise TypeError('Cannot compare Field objects, compare their values instead')
-
-    def _set_field_type(self, field_type):
-        self._field_type = field_type
-        self._enum_mapping = None
-
-        # list, values of enum items counts from zero
-        if isinstance(field_type, list):
-            self._enum_mapping = bidict({field_type[x]: x for x in range(len(field_type))})
-
+    @staticmethod
+    def _init_bi_mapping(choices):
         # dict, enum items and their values are in dict
-        elif isinstance(field_type, dict):
-            self._enum_mapping = bidict(field_type)
+        if isinstance(choices, dict):
+            return bidict(choices)
 
         # enum.Enum, enum items and their values are in Enum class
-        elif isinstance(field_type, type) and issubclass(field_type, Enum):
-            self._enum_mapping = bidict({x: y.value for x,y in field_type.__members__.items()})
+        elif isinstance(choices, type) and issubclass(choices, Enum):
+            return bidict({x: y.value for x, y in choices.__members__.items()})
 
-        if self._enum_mapping:
-            self._do_encode = lambda t, v: self._enum_mapping.inv(v)
-            self._do_decode = lambda t, v: self._enum_mapping[v]
-        elif self._field_type is not None:
-            self._do_encode = lambda t, v: v
-            self._do_decode = lambda t, v: t(v)
         else:
-            self._do_encode = lambda t, v: v
-            self._do_decode = lambda t, v: v
+            return None
 
-    __slots__ = ('_field_type', '_name', '_required', '_tags', '_get_callback', '_save_callback', '_raw_val',
-                 '_do_decode', '_do_encode', '_enum_mapping')
+
+class String(Field):
+    """:class:`Field` subclass with builtin `string` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(String, self).__init__(builtin_validators.String(), *args, **kwargs)
+
+    @property
+    def field_type(self):
+        return six.string_types
+
+
+class Integer(Field):
+    """:class:`Field` subclass with builtin `integer` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(Integer, self).__init__(builtin_validators.Integer(), *args, **kwargs)
+
+    @property
+    def field_type(self):
+        return six.integer_types
+
+
+class Float(Field):
+    """:class:`Field` subclass with builtin `float` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(Float, self).__init__(builtin_validators.Float(), *args, **kwargs)
+
+    @property
+    def field_type(self):
+        return float
+
+
+class Boolean(Field):
+    """:class:`Field` subclass with builtin `bool` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(Boolean, self).__init__(builtin_validators.Boolean(), *args, **kwargs)
+
+    @property
+    def field_type(self):
+        return bool
+
+
+class Embedded(Field):
+    """:class:`Field` subclass with builtin embedded :class:`models.Model`
+    validation.
+
+    """
+
+    def __init__(self, model, *args, **kwargs):
+        kwargs.setdefault('encoders', []).append(builtin_encoders.Model())
+        kwargs.setdefault('decoders', []).append(builtin_decoders.Model(model))
+
+        super(Embedded, self).__init__(builtin_validators.Model(model), *args, **kwargs)
+
+        self.model = model
+
+    def __set__(self, instance, value):
+        if isinstance(value, collections.MutableMapping):
+            value = self.model(**value)
+
+        super(Embedded, self).__set__(instance, value)
+
+
+class Email(String):
+    """:class:`Field` subclass with builtin `email` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(Email, self).__init__(builtin_validators.Email(), *args, **kwargs)
+
+
+class URL(String):
+    """:class:`Field` subclass with builtin `URL` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(URL, self).__init__(builtin_validators.URL(), *args, **kwargs)
+
+
+class IP(String):
+    """:class:`Field` subclass with builtin `ip` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(IP, self).__init__(builtin_validators.IP(), *args, **kwargs)
+
+
+class URI(String):
+    """:class:`Field` subclass with builtin `URI` validation."""
+
+    def __init__(self, *args, **kwargs):
+        super(URI, self).__init__(builtin_validators.URI(), *args, **kwargs)
+
+
+class Raw(Field):
+    """:class:`Field` raw input data"""
+
+    def __init__(self, *args, **kwargs):
+        super(Raw, self).__init__(*args, **kwargs)
+
+
+class List(Field):
+    """:class:`Field` subclass with builtin `list` validation
+    and default value.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('default', [])
+        kwargs.setdefault('encoders', []).append(builtin_encoders.List())
+
+        super(List, self).__init__(
+            builtin_validators.List(*kwargs.get('inner_validators', [])),
+            *args, **kwargs)
+
+    @property
+    def field_type(self):
+        return list
+
+
+class Collection(Field):
+    """:class:`Field` subclass with builtin `list of` :class:`models.Model`
+    validation, encoding and decoding.
+
+    Example::
+
+        class Token(Model):
+            key = String()
+            secret = String()
+
+        class User(Model):
+            tokens = Collection(Token)
+
+
+        user = User({
+            'tokens': [
+                {
+                    'key': 'xxx',
+                    'secret': 'yyy'
+                },
+                {
+                    'key': 'zzz',
+                    'secret': 'xxx'
+                },
+            ]
+        })
+
+        user.tokens.append(Token(key='yyy', secret='xxx'))
+
+    """
+
+    def __init__(self, model, *args, **kwargs):
+        kwargs.setdefault('default', [])
+
+        kwargs.setdefault('encoders', []).append(builtin_encoders.Collection())
+        kwargs.setdefault('decoders', []).append(builtin_decoders.Collection(model))
+        super(Collection, self).__init__(builtin_validators.List(builtin_validators.Model(model)), *args, **kwargs)
+        self.model = model
+
+    def __set__(self, instance, value):
+        if isinstance(value, collections.MutableSequence):
+            value = self._resolve(value)
+
+        super(Collection, self).__set__(instance, value)
+
+    def _resolve(self, value):
+        result = []
+        for item in value:
+            if isinstance(item, collections.MutableMapping):
+                item = self.model(**item)
+            result.append(item)
+        return result

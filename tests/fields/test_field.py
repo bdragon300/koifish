@@ -1,228 +1,99 @@
-import pytest
-from copy import copy, deepcopy
-from fields import Field
 from enum import Enum
+from unittest.mock import Mock
+
+import pytest
+
+from fields import Field, Integer
 
 
-class ColorEnumStub(Enum):
+class ChoicesEnumStub(Enum):
     RED = 44
     GREEN = 55
     BLUE = 'blue'
+
+
+choices_dict_stub = {'RED': 44, 'GREEN': 55, 'BLUE': 'blue'}
 
 
 class TestField:
     def test_default_prop_values(self):
         obj = Field()
 
-        assert obj.field_type is None
-        assert obj.name is None
-        assert obj.required is False
-        assert obj.tags == frozenset()
-        assert obj.get_callback is None
-        assert obj.save_callback is None
-        assert obj.val is None
-        assert obj.raw is None
+        assert obj.after_read is None
+        assert obj.before_write is None
 
-    def test_field_type_prop_initialized(self):
-        obj = Field(field_type=bool)
-
-        assert obj.field_type == bool
-
-    def test_name_prop_initialized(self):
-        obj = Field(_name='FooName')
-
-        assert obj.name == 'FooName'
-
-    def test_required_prop_initialized(self):
-        obj = Field(required=True)
-
-        assert obj.required is True
-
-    def test_tags_prop_initialized(self):
-        iterable = ['tag1', 'tag2', 'tag3']
-
+    def test_after_read_prop_initialized(self):
         obj = Field(
-            tags=iterable
+            after_read=lambda field, data: 'after_read_test'
         )
 
-        assert obj.tags == frozenset(iterable)
+        assert obj.after_read(obj, {}) == 'after_read_test'
 
-    @pytest.mark.parametrize('init_value', (('tag1', 'tags2')))
-    def test_tags_prop_type(self, init_value):
-        obj = Field(tags=init_value)
-
-        assert isinstance(obj.tags, frozenset)
-
-    def test_get_callback_prop_initialized(self):
+    def test_before_write_prop_initialized(self):
         obj = Field(
-            get_callback=lambda field, data: 'get_callback_test'
+            before_write=lambda field, data: 'before_write_test'
         )
 
-        assert obj.get_callback(obj, {}) == 'get_callback_test'
+        assert obj.before_write(obj, {}) == 'before_write_test'
 
-    def test_save_callback_prop_initialized(self):
-        obj = Field(
-            save_callback=lambda field, data: 'save_callback_test'
-        )
+    @pytest.mark.parametrize('choice,val', {x: y.value for x, y in ChoicesEnumStub.__members__.items()}.items())
+    def test_get_descriptor_enum_value_mapping(self, choice, val):
+        obj = Field(choices=ChoicesEnumStub)
+        model_mock = Mock(_data={obj: val})
 
-        assert obj.save_callback(obj, {}) == 'save_callback_test'
+        res = obj.__get__(model_mock, None)
 
-    @pytest.mark.parametrize('init_value', (None, True, 123, 'string'))
-    def test_raw_prop_without_typing(self, init_value):
-        obj = Field()
-        obj._raw_val = init_value
+        assert res == choice
 
-        x = obj.raw
+    @pytest.mark.parametrize('choice,val', choices_dict_stub.items())
+    def test_get_descriptor_dict_value_mapping(self, choice, val):
+        obj = Field(choices=choices_dict_stub)
+        model_mock = Mock(_data={obj: val})
 
-        assert x is init_value
+        res = obj.__get__(model_mock, None)
 
-    @pytest.mark.parametrize('init_value', (None, True, 123, 'string'))
-    def test_raw_prop_set(self, init_value):
-        obj = Field()
+        assert res == choice
 
-        obj.raw = init_value
+    def test_get_descriptor_list_not_mapped(self):
+        obj = Field(choices=[1, 2, 3])
+        model_mock = Mock(_data={obj: 1})
 
-        assert obj._raw_val is init_value
+        res = obj.__get__(model_mock, None)
 
-    @pytest.mark.parametrize('field_type,init_value,expect_value', (
-        (bool, 1, True),
-        (int, True, 1),
-        (str, 123, '123'),
-        (int, '123', 123),
-        (float, 1, 1.0)
-    ))
-    def test_val_prop_typing_builtin_types(self, field_type, init_value, expect_value):
-        obj = Field(field_type=field_type)
+        assert res == 1
 
-        obj.val = init_value
-        x = obj.val
+    @pytest.mark.parametrize('choice,val', {x: y.value for x, y in ChoicesEnumStub.__members__.items()}.items())
+    def test_set_descriptor_enum_value_mapping(self, choice, val):
+        obj = Field(choices=ChoicesEnumStub)
+        model_mock = Mock(_data={})
 
-        assert x == expect_value
-        assert type(x) == type(expect_value)
+        obj.__set__(model_mock, choice)
 
-    @pytest.mark.parametrize('field_type,init_value', (
-        (dict, 1),
-        (int, int),
-        (int, type)
-    ))
-    def test_val_prop_typing_type_error_builtins_types(self, field_type, init_value):
-        obj = Field(field_type=field_type)
+        assert model_mock._data[obj] == val
 
-        with pytest.raises(TypeError):
-            obj.val = init_value
+    @pytest.mark.parametrize('choice,val', choices_dict_stub.items())
+    def test_set_descriptor_dict_value_mapping(self, choice, val):
+        obj = Field(choices=choices_dict_stub)
+        model_mock = Mock(_data={})
 
-    @pytest.mark.parametrize('field_type,init_value,expect_raw_value', (
-        (['RED', 'GREEN', 'BLUE'], 'RED', 0),
-        ({'RED': 35, 'GREEN': 'deep green', 'BLUE': 'blue'}, 'RED', 35),
-        ({'RED': 35, 'GREEN': 'deep green', 'BLUE': 'blue'}, 'GREEN', 'deep green'),
-        (ColorEnumStub, 'RED', ColorEnumStub['RED'].value)
-    ))
-    def test_val_prop_set_in_enum_field_type(self, field_type, init_value, expect_raw_value):
-        obj = Field(field_type=field_type)
+        obj.__set__(model_mock, choice)
 
-        obj.val = init_value
+        assert model_mock._data[obj] == val
 
-        assert obj.raw == expect_raw_value
+    def test_set_descriptor_list_not_mapped(self):
+        obj = Field(choices=[1, 2, 3])
+        model_mock = Mock(_data={})
 
-    @pytest.mark.parametrize('field_type', (
-            ['RED', 'GREEN', 'BLUE'],
-            {'RED': 35, 'GREEN': 'deep green', 'BLUE': 'blue'},
-            ColorEnumStub
-    ))
-    @pytest.mark.parametrize('wrong_value', ('BLACK', int, type))
-    def test_val_prop_error_on_wrong_value_set_in_enum_field_type(self, field_type, wrong_value):
-        obj = Field(field_type=field_type)
+        res = obj.__set__(model_mock, 1)
 
-        with pytest.raises(KeyError):
-            obj.val = wrong_value
+        assert model_mock._data[obj] == 1
 
-    def test_val_prop_default_if_field_value_is_set(self):
-        obj = Field(field_type=int)
+    def test_validate_enum(self):
+        obj = Integer(choices=ChoicesEnumStub)
 
-        assert obj.val is None
+        obj.validate(ChoicesEnumStub['RED'].value)
 
-    @pytest.mark.parametrize('init_value', (None, True, 123, 'string'))
-    def test_val_prop_without_typing(self, init_value):
-        obj = Field()
-        obj.val = init_value
+    def test_validate_dict(self):
+        obj = Integer(choices=ChoicesEnumStub)
 
-        x = obj.val
-
-        assert x == init_value
-        assert type(x) == type(init_value)
-
-    def test_val_prop_none_value_typing_immune(self):
-        obj = Field(field_type=int)
-
-        obj.val = 123
-        obj.val = None
-
-        assert obj.val is None
-
-    def test_repr(self):
-        obj = Field(field_type=int, _name='Field1')
-        obj.val = 123
-
-        assert repr(obj) == "<{} '{}'> = {}".format(obj.__class__.__name__, obj.name, obj.val)
-
-    def test_str(self):
-        obj = Field(field_type=int, _name='Field1')
-        obj.val = 123
-
-        assert repr(obj) == "<{} '{}'> = {}".format(obj.__class__.__name__, obj.name, obj.val)
-
-    def test_eq(self):
-        obj = Field()
-
-        with pytest.raises(TypeError):
-            obj == obj
-
-    def test_ne(self):
-        obj = Field()
-
-        with pytest.raises(TypeError):
-            obj != obj
-
-
-class TestFieldCopy:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.obj = Field(
-            field_type=list,
-            required=True,
-            tags={'tag1', 'tag2'}
-        )
-
-    @pytest.mark.parametrize('member', Field.__slots__)
-    def test_copying(self, member):
-        setattr(self.obj, member, 'test_value')
-
-        copy_obj = copy(self.obj)
-
-        # Python allocates equal frozensets in single place. We need change one to make them different
-        # copy_obj._tags |= {'another_tag'}
-
-        assert getattr(self.obj, member) == getattr(copy_obj, member)
-        assert type(getattr(self.obj, member)) == type(getattr(copy_obj, member))
-        # assert copy_obj is not self.obj
-        # assert copy_obj.val == self.obj.val
-        # assert copy_obj.val is not self.obj.val
-        # assert copy_obj.tags is not self.obj.tags
-        # assert copy_obj.enum_cls == self.obj.enum_cls
-
-    @pytest.mark.parametrize('member', Field.__slots__)
-    def test_deepcopy(self, member):
-        setattr(self.obj, member, 'test_value')
-
-        deepcopy_obj = deepcopy(self.obj)
-
-        # # Python allocates equal frozensets in single place. We need change one to make them different
-        # deepcopy_obj._tags |= {'another_tag'}
-
-        assert getattr(self.obj, member) == getattr(deepcopy_obj, member)
-        assert type(getattr(self.obj, member)) == type(getattr(deepcopy_obj, member))
-        # assert deepcopy_obj is not self.obj
-        # assert deepcopy_obj.val == self.obj.val
-        # assert deepcopy_obj.val is not self.obj.val
-        # assert deepcopy_obj.tags is not self.obj.tags
-        # assert deepcopy_obj.enum_cls == self.obj.enum_cls
+        obj.validate(choices_dict_stub['RED'])
