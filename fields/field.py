@@ -102,51 +102,51 @@ class Field(bfields.Field):
             return None
 
 
-class String(Field):
+class StringField(Field):
     """:class:`Field` subclass with builtin `string` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(String, self).__init__(builtin_validators.String(), *args, **kwargs)
+        super(StringField, self).__init__(builtin_validators.String(), *args, **kwargs)
 
     @property
     def field_type(self):
         return six.string_types
 
 
-class Integer(Field):
+class IntegerField(Field):
     """:class:`Field` subclass with builtin `integer` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(Integer, self).__init__(builtin_validators.Integer(), *args, **kwargs)
+        super(IntegerField, self).__init__(builtin_validators.Integer(), *args, **kwargs)
 
     @property
     def field_type(self):
         return six.integer_types
 
 
-class Float(Field):
+class FloatField(Field):
     """:class:`Field` subclass with builtin `float` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(Float, self).__init__(builtin_validators.Float(), *args, **kwargs)
+        super(FloatField, self).__init__(builtin_validators.Float(), *args, **kwargs)
 
     @property
     def field_type(self):
         return float
 
 
-class Boolean(Field):
+class BooleanField(Field):
     """:class:`Field` subclass with builtin `bool` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(Boolean, self).__init__(builtin_validators.Boolean(), *args, **kwargs)
+        super(BooleanField, self).__init__(builtin_validators.Boolean(), *args, **kwargs)
 
     @property
     def field_type(self):
         return bool
 
 
-class Embedded(Field):
+class EmbeddedField(Field):
     """:class:`Field` subclass with builtin embedded :class:`models.Model`
     validation.
 
@@ -156,7 +156,7 @@ class Embedded(Field):
         kwargs.setdefault('encoders', []).append(builtin_encoders.Model())
         kwargs.setdefault('decoders', []).append(builtin_decoders.Model(model))
 
-        super(Embedded, self).__init__(builtin_validators.Model(model), *args, **kwargs)
+        super(EmbeddedField, self).__init__(builtin_validators.Model(model), *args, **kwargs)
 
         self.model = model
 
@@ -164,45 +164,45 @@ class Embedded(Field):
         if isinstance(value, collections.MutableMapping):
             value = self.model(**value)
 
-        super(Embedded, self).__set__(instance, value)
+        super(EmbeddedField, self).__set__(instance, value)
 
 
-class Email(String):
+class EmailField(StringField):
     """:class:`Field` subclass with builtin `email` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(Email, self).__init__(builtin_validators.Email(), *args, **kwargs)
+        super(EmailField, self).__init__(builtin_validators.Email(), *args, **kwargs)
 
 
-class URL(String):
+class URLField(StringField):
     """:class:`Field` subclass with builtin `URL` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(URL, self).__init__(builtin_validators.URL(), *args, **kwargs)
+        super(URLField, self).__init__(builtin_validators.URL(), *args, **kwargs)
 
 
-class IP(String):
+class IPField(StringField):
     """:class:`Field` subclass with builtin `ip` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(IP, self).__init__(builtin_validators.IP(), *args, **kwargs)
+        super(IPField, self).__init__(builtin_validators.IP(), *args, **kwargs)
 
 
-class URI(String):
+class URIField(StringField):
     """:class:`Field` subclass with builtin `URI` validation."""
 
     def __init__(self, *args, **kwargs):
-        super(URI, self).__init__(builtin_validators.URI(), *args, **kwargs)
+        super(URIField, self).__init__(builtin_validators.URI(), *args, **kwargs)
 
 
-class Raw(Field):
+class RawField(Field):
     """:class:`Field` raw input data"""
 
     def __init__(self, *args, **kwargs):
-        super(Raw, self).__init__(*args, **kwargs)
+        super(RawField, self).__init__(*args, **kwargs)
 
 
-class List(Field):
+class ListField(Field):
     """:class:`Field` subclass with builtin `list` validation
     and default value.
 
@@ -212,7 +212,7 @@ class List(Field):
         kwargs.setdefault('default', [])
         kwargs.setdefault('encoders', []).append(builtin_encoders.List())
 
-        super(List, self).__init__(
+        super(ListField, self).__init__(
             builtin_validators.List(*kwargs.get('inner_validators', [])),
             *args, **kwargs)
 
@@ -221,7 +221,7 @@ class List(Field):
         return list
 
 
-class Collection(Field):
+class CollectionField(Field):
     """:class:`Field` subclass with builtin `list of` :class:`models.Model`
     validation, encoding and decoding.
 
@@ -257,14 +257,14 @@ class Collection(Field):
 
         kwargs.setdefault('encoders', []).append(builtin_encoders.Collection())
         kwargs.setdefault('decoders', []).append(builtin_decoders.Collection(model))
-        super(Collection, self).__init__(builtin_validators.List(builtin_validators.Model(model)), *args, **kwargs)
+        super(CollectionField, self).__init__(builtin_validators.List(builtin_validators.Model(model)), *args, **kwargs)
         self.model = model
 
     def __set__(self, instance, value):
         if isinstance(value, collections.MutableSequence):
             value = self._resolve(value)
 
-        super(Collection, self).__set__(instance, value)
+        super(CollectionField, self).__set__(instance, value)
 
     def _resolve(self, value):
         result = []

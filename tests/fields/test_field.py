@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from fields import Field, Integer
+from fields import Field, IntegerField
 
 
 class ChoicesEnumStub(Enum):
@@ -97,11 +97,11 @@ class TestField:
         assert model_mock._data[obj] == 1
 
     def test_validate_enum(self):
-        obj = Integer(choices=ChoicesEnumStub)
+        obj = IntegerField(choices=ChoicesEnumStub)
 
         obj.validate(ChoicesEnumStub['RED'].value)
 
     def test_validate_dict(self):
-        obj = Integer(choices=ChoicesEnumStub)
+        obj = IntegerField(choices=ChoicesEnumStub)
 
         obj.validate(choices_dict_stub['RED'])
