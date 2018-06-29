@@ -24,6 +24,7 @@ class Field(bfields.Field):
 
     :param required: If `True` this field value should not be `None`.
     :param primary_key: `True` if this field is primary key in model. Default is `False`
+    :param virtual: `True` means this field will not be included in data exchange. Default is `False`
     :param choices: Possible field values with values mapping (`dict` or `enum.Enum`) or without mapping (`list`).
 
         A `list` parameter simply sets values which this field can have. `dict` or `enum.Enum` parameters also set
@@ -52,6 +53,7 @@ class Field(bfields.Field):
         self.required = kwargs.get('required', False)
         self.choices = kwargs.get('choices', [])
         self.primary_key = kwargs.get('primary_key', False)
+        self.virtual = kwargs.get('virtual', False)
 
         # Setup field validators
         self.validators = []

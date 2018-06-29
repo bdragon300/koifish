@@ -20,6 +20,7 @@ class TestField:
         obj = Field()
 
         assert obj.primary_key is False
+        assert obj.virtual is False
 
     def test_primary_key_prop_initialized(self):
         obj = Field(
