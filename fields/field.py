@@ -41,8 +41,6 @@ class Field(bfields.Field):
 
     :param name: Specify an alternate key name to use when decoding and encoding.
     :param read_only: If `True`, the value is treated normally in decoding but omitted during encoding.
-    :param after_read: Optional. Callback used to calculate field value. Calls after data has retrieved from
-        implementation layer
     :param before_write: Optional. Callback used to change model before saving.
     :param \*validators: A list of field :mod:`validators` as positional arguments.
     """
@@ -70,9 +68,6 @@ class Field(bfields.Field):
                 self.validators.append(builtin_validators.In(self.choices))
 
         self.validators.extend(validators)
-
-        self.after_read = kwargs.get('after_read')
-        self.before_write = kwargs.get('before_write')
 
     def __get__(self, instance, owner):
         val = super().__get__(instance, owner)

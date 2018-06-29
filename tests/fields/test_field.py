@@ -20,8 +20,6 @@ class TestField:
         obj = Field()
 
         assert obj.primary_key is False
-        assert obj.after_read is None
-        assert obj.before_write is None
 
     def test_primary_key_prop_initialized(self):
         obj = Field(
@@ -29,20 +27,6 @@ class TestField:
         )
 
         assert obj.primary_key is True
-
-    def test_after_read_prop_initialized(self):
-        obj = Field(
-            after_read=lambda field, data: 'after_read_test'
-        )
-
-        assert obj.after_read(obj, {}) == 'after_read_test'
-
-    def test_before_write_prop_initialized(self):
-        obj = Field(
-            before_write=lambda field, data: 'before_write_test'
-        )
-
-        assert obj.before_write(obj, {}) == 'before_write_test'
 
     @pytest.mark.parametrize('choice,val', {x: y.value for x, y in ChoicesEnumStub.__members__.items()}.items())
     def test_get_descriptor_enum_value_mapping(self, choice, val):
