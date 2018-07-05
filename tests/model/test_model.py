@@ -38,10 +38,12 @@ class TestModel:
         self.test_impl_obj = Mock()
         self.test_default_impl_obj = Mock()
         self.test_layer_class = Mock(
-            create_impl=Mock(return_value=self.test_impl_obj)
+            get_impl=Mock(return_value=lambda *a, **kw: self.test_impl_obj),
+            __name__='TestLayer'
         )
         self.test_default_layer_class = Mock(
-            create_impl=Mock(return_value=self.test_default_impl_obj)
+            get_impl=Mock(return_value=lambda *a, **kw: self.test_default_impl_obj),
+            __name__='TestDefaultLayer'
         )
 
         self.model_class._default_layer = self.test_default_layer_class
@@ -51,6 +53,7 @@ class TestModel:
         assert self.obj._deleted is False
         assert self.obj._validate_on_write is True
         assert self.obj._validate_on_read is False
+        assert self.obj._search_impl_in_default_layer is True
 
     def test_default_layer_class(self):
         assert self.obj._layer_class is self.test_default_layer_class
@@ -60,8 +63,34 @@ class TestModel:
 
         assert obj._layer_class is self.test_layer_class
 
-    def test_impl_object_set(self):
+    def test_impl_object_set_default_if_not_passed(self):
         assert self.obj._impl_object is self.test_default_impl_obj
+
+    def test_impl_object_set(self):
+        obj = self.model_class(self.test_layer_class)
+
+        assert obj._impl_object is self.test_impl_obj
+
+    def test_impl_object_set_default_if_not_found(self):
+        self.test_layer_class.get_impl.return_value = None
+
+        obj = self.model_class(self.test_layer_class)
+
+        assert obj._impl_object is self.test_default_impl_obj
+
+    def test_impl_object_raise_error_if_not_found_in_default(self):
+        self.test_layer_class.get_impl.return_value = None
+        self.test_default_layer_class.get_impl.return_value = None
+
+        with pytest.raises(ModelError):
+            obj = self.model_class(self.test_layer_class)
+
+    def test_impl_object_raise_error_if_not_found_in_layer_and_forbidden_to_search_in_default_layer(self):
+        self.model_class._search_impl_in_default_layer = False
+        self.test_layer_class.get_impl.return_value = None
+
+        with pytest.raises(ModelError):
+            obj = self.model_class(self.test_layer_class)
 
     def test_request_fields_determine(self):
         check_data = {k: v for k, v in self.obj.__class__.__dict__.items()

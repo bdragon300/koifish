@@ -35,6 +35,7 @@ class Model(booby.Model):
     _default_layer = None
     _validate_on_write = True
     _validate_on_read = False
+    _search_impl_in_default_layer = True
 
     _primary_key = None  # Primary key field name
     _request_fields = {}  # _fields' slice of fields that included in requests
@@ -69,7 +70,8 @@ class Model(booby.Model):
         if not cls._primary_key:
             cls._primary_key = self._get_primary_key()
 
-        self._impl_object = self._layer_class.create_impl(cls)
+        self._impl_object = self._get_impl(self._layer_class)()
+
 
     def load(self, **kwargs):
         """
@@ -312,6 +314,25 @@ class Model(booby.Model):
         elif len(pk) > 1:
             raise ModelError("More than one field is primary key in model '{}'".format(self.__class__.__name__))
         return pk[0]
+
+    def _get_impl(self, layer_class):
+        """
+        Try to get implementation class from given layer. If not found try to find it in default one. If not found again
+        raise exception
+        :param layer_class: layer class
+        :raises ModelError: implementation class not found
+        :return: implementation class
+        """
+        cls = self.__class__
+        iobj = layer_class.get_impl(cls)
+        if iobj is None and self._search_impl_in_default_layer:
+            iobj = self._default_layer.get_impl(cls)
+
+        if iobj is None:
+            raise ModelError("Cannot find implementation for '{}' in layers [{}, {}]"
+                             .format(cls.__name__, layer_class.__name__, self._default_layer.__name__))
+
+        return iobj
 
 
 __all__ = ['Model']
