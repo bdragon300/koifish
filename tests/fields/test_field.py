@@ -55,6 +55,14 @@ class TestField:
 
         assert res == 1
 
+    def test_get_descriptor_no_choices(self):
+        obj = Field()
+        model_mock = Mock(_data={obj: 1})
+
+        res = obj.__get__(model_mock, None)
+
+        assert res == 1
+
     @pytest.mark.parametrize('choice,val', {x: y.value for x, y in ChoicesEnumStub.__members__.items()}.items())
     def test_set_descriptor_enum_value_mapping(self, choice, val):
         obj = Field(choices=ChoicesEnumStub)
@@ -75,6 +83,14 @@ class TestField:
 
     def test_set_descriptor_list_not_mapped(self):
         obj = Field(choices=[1, 2, 3])
+        model_mock = Mock(_data={})
+
+        res = obj.__set__(model_mock, 1)
+
+        assert model_mock._data[obj] == 1
+
+    def test_set_descriptor_no_choices(self):
+        obj = Field()
         model_mock = Mock(_data={})
 
         res = obj.__set__(model_mock, 1)

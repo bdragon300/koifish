@@ -57,6 +57,7 @@ class Field(bfields.Field):
 
         # Setup field validators
         self.validators = []
+        self._bi_mapping = None
 
         if self.required:
             self.validators.append(builtin_validators.Required())
