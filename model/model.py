@@ -8,7 +8,7 @@ import booby
 import booby.errors
 
 
-class Model(booby.Model):
+class BaseModel(booby.Model):
     # TODO: make __copy__
     """
     Base class for user-defined ORM Models. Built on top of `booby` model, so see its docs.
@@ -334,5 +334,7 @@ class Model(booby.Model):
 
         return iobj
 
+
+Model = BaseModel
 
 __all__ = ['Model']

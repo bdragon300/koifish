@@ -1,11 +1,11 @@
 import pytest
-from model import BaseModelImpl
+from model import ModelImpl
 
 
 class TestImpl:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.obj = BaseModelImpl()
+        self.obj = ModelImpl()
 
     def test_get(self):
         with pytest.raises(NotImplementedError):

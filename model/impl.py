@@ -58,3 +58,8 @@ class BaseModelImpl:
         :return: ListResponse object with records
         """
         raise NotImplementedError
+
+
+ModelImpl = BaseModelImpl
+
+__all__ = ['ModelImpl']

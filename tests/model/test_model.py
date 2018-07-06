@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch, MagicMock
 import random
 import pytest
 
-from model import Model, BaseModelImpl
+from model import Model, ModelImpl
 from exc import ModelError, NotFoundError, ValidationError
 import fields
 
