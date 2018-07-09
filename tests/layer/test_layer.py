@@ -1,4 +1,5 @@
-from model import Model, ModelImpl, Layer
+from model import Model
+from layer import ModelImpl, Layer
 
 
 class ModelStubImpl(ModelImpl):
