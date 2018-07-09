@@ -1,5 +1,6 @@
 from enum import Enum
 from .base import BaseRestriction, BaseRestrictionContainer
+from utils import DeepcopySlotMixin
 
 
 class FilterOperator(Enum):
@@ -164,7 +165,7 @@ class Sorts(BaseRestrictionContainer):
         return Sort(**init_args)
 
 
-class Restrictions:
+class Restrictions(DeepcopySlotMixin):
     """All restrictions container"""
 
     __slots__ = (

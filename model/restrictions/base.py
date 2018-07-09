@@ -1,7 +1,8 @@
 from collections import UserDict
+from utils import DeepcopySlotMixin
 
 
-class BaseRestriction:
+class BaseRestriction(DeepcopySlotMixin):
     """Base class for concrete restriction type classes"""
     __slots__ = ()
 
