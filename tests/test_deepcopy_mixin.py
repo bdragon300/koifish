@@ -20,3 +20,13 @@ class TestSlotDeepcopy:
         res = deepcopy(obj)
 
         assert obj.slot1 is not res.slot1 and obj.slot2 is not res.slot2
+
+    def test_skip_unset_slots(self):
+        obj = DeepcopyStub2()
+        obj.slot2 = []
+
+        res = deepcopy(obj)
+
+        assert obj.slot2 is not res.slot2
+        with pytest.raises(AttributeError):
+            res.slot1
