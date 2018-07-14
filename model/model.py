@@ -192,8 +192,8 @@ class BaseModel(booby.Model):
 
     def new_model(self, data):
         """
-        Factory method that creates new model object and used to instantiate model object depending on record. Used by
-        RequestSet and obtain
+        Factory method that creates new _empty_ model object. `data` param can be used to determine a class to
+        produce. Method typically used to build right model object during iteration on QuerySet.
 
         By default returns new object of current model class with empty fields.
 
