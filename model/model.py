@@ -36,6 +36,7 @@ class BaseModel(booby.Model):
     _validate_on_write = True
     _validate_on_read = False
     _search_impl_in_default_layer = True
+    _request_limit = 10
 
     _primary_key = None  # Primary key field name
     _request_fields = {}  # _fields' slice of fields that included in requests
