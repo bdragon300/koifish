@@ -37,7 +37,7 @@ class DeepcopySlotMixin:
                 for slot in slots:
                     print(slot)
                     try:
-                        setattr(obj, slot, deepcopy(getattr(self, slot)))
+                        setattr(obj, slot, deepcopy(getattr(self, slot), memo))
                     except AttributeError:
                         pass  # Skip slot if it was not set in self
             memo[self_id] = copied
