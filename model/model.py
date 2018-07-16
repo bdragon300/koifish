@@ -192,13 +192,17 @@ class BaseModel(booby.Model):
 
     def new_model(self, data):
         """
-        Factory method that creates new _empty_ model object. `data` param can be used to determine a class to
-        produce. Method typically used to build right model object during iteration on QuerySet.
+        Factory method that creates new model object. Method typically used to return right model object during
+        iteration over QuerySet.
 
-        By default returns new object of current model class with empty fields.
+        Returned object doesn't filled out by given `data`. This parameter typically used only to determine a class
+        to produce, for instance.
+
+        By default method returns simply new empty object of current class. User can alter this behavior in user models,
+        for instance, when there is needed to implement polymorphism in model hierarchy based on response data.
 
         :param data: record dict
-        :return:
+        :return: Empty model object
         """
         obj = self.__class__(self._layer_class)
 
