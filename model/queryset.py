@@ -130,7 +130,7 @@ class QuerySet(object):
         """
         rl = self._request_limit
         res = self._fetch_page(offset, rl)
-        self._cache[offset:rl] = res
+        self._cache[offset:offset + rl] = res
         if res.total_count is not None:
             self._cache.total_count = res.total_count
         else:
