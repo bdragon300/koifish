@@ -147,14 +147,14 @@ class QuerySet(object):
         return self._sorts
 
     @property
-    def model_obj(self):
-        """Model object which QuerySet instance was initialized with"""
-        return self._model_obj
-
-    @property
     def ordered(self):
         """True if the QuerySet is ordered — i.e. has an order_by() clause or a default ordering on the model."""
         return bool(self._sorts.data)
+
+    @property
+    def model_obj(self):
+        """Model object which QuerySet instance was initialized with"""
+        return self._model_obj
 
     def __iter__(self):
         return self._iterator_class(self, iter(self._cache))
