@@ -3,6 +3,10 @@ from copy import deepcopy
 from cacher import MemoryCache
 from exc import EmptyCacheError
 from model.restrictions.restrictions import Filters, Sorts, Pagination
+from decimal import Decimal
+
+# Special constant used to point out that QuerySet has unknown count of objects (i.e. infinite count)
+Inf = Decimal('Inf')
 
 
 class BaseIterator:
@@ -125,7 +129,12 @@ class QuerySet(object):
         :return:
         """
         rl = self._request_limit
-        self._cache[offset:rl] = self._fetch_page(offset, rl)
+        res = self._fetch_page(offset, rl)
+        self._cache[offset:rl] = res
+        if res.total_count is not None:
+            self._cache.total_count = res.total_count
+        else:
+            self._cache.total_count = Inf
 
     @property
     def filters(self):
