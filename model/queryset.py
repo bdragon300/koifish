@@ -168,7 +168,7 @@ class QuerySet(object):
     def __getitem__(self, k):
         assert ((not isinstance(k, slice) and (k >= 0)) or
                 (isinstance(k, slice) and (k.start is None or k.start >= 0) and
-                 (k.stop is None or k.stop >= 0))), \
+                 (k.stop is None or k.stop >= 0) and (k.step is None or k.step > 0))), \
             "Negative indexing is not supported."
 
         def objs(start, stop, step):
