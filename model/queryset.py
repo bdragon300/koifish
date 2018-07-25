@@ -192,7 +192,7 @@ class QuerySet(object):
                 start = int(start)
             if stop is not None:
                 stop = int(stop)
-            return list(objs(start, stop, step))
+            return objs(start, stop, step)
         else:
             k = int(k)
             if k >= self._cache.total_count:
