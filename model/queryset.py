@@ -221,4 +221,4 @@ class QuerySet(object):
         return self._model_obj.get_list(self.filters, self.sorts, Pagination(limit=limit, offset=offset))
 
 
-__all__ = ('QuerySet', )
+__all__ = ('QuerySet', 'Inf')
