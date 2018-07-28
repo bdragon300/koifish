@@ -1,12 +1,9 @@
-from copy import copy, deepcopy
-import weakref
-
-from fields import Field, ForeignField, OneToManyField
-# from structure.list import RequestSet
-from cacher import MemoryCacher
-from exc import ModelError, NotFoundError, ValidationError
 import booby
 import booby.errors
+
+from cacher import MemoryCacher
+from exc import ModelError, NotFoundError, ValidationError
+from .queryset import QuerySet
 
 
 class BaseModel(booby.Model):
@@ -43,12 +40,6 @@ class BaseModel(booby.Model):
     _primary_key = None  # Primary key field name
     _request_fields = {}  # _fields' slice of fields that included in requests
 
-    # @property
-    # def objects(self):
-    #     """New initialized RequestSet object"""
-    #     obj = RequestSet(self)
-    #     return obj
-
     def __init__(self, _layer_class=None, **kwargs):
         """
         Constructor receives layer_class as the first positional param. Init fields values can be passed as kwargs.
@@ -75,6 +66,15 @@ class BaseModel(booby.Model):
 
         self._impl_object = self._get_impl(self._layer_class)()
 
+    @property
+    def objects(self):
+        """New empty QuerySet instance, that contains current model objects"""
+        obj = QuerySet(
+            self,
+            cache=self._cacher.new_cache(),
+            request_limit=self._request_limit
+        )
+        return obj
 
     def load(self, **kwargs):
         """

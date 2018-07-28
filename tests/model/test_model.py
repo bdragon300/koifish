@@ -1,13 +1,12 @@
-from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock
 import random
+from unittest.mock import Mock
+
 import pytest
 
-from model import Model
-from layer import ModelImpl
+import fields
 from cacher import MemoryCacher
 from exc import ModelError, NotFoundError, ValidationError
-import fields
+from model import Model, QuerySet
 
 
 @pytest.fixture()
@@ -29,9 +28,6 @@ def model_stub_class():
     return ModelStub
 
 
-#
-# Entity
-#
 class TestModel:
     @pytest.fixture(autouse=True)
     def setup(self, model_stub_class, randomize_record):
@@ -134,13 +130,31 @@ class TestModel:
 
         assert test_data == t
 
-    # def test_objects_prop(self):
-    #     obj1 = self.obj.objects
-    #     obj2 = self.obj.objects
-    #
-    #     assert obj1.__class__ == RequestSet
-    #     assert obj2.__class__ == RequestSet
-    #     assert obj1 is not obj2
+    def test_objects_prop_return_new_queryset_on_every_call(self):
+        obj1 = self.obj.objects
+        obj2 = self.obj.objects
+
+        assert obj1 is not obj2 and isinstance(obj1, QuerySet) and isinstance(obj2, QuerySet)
+
+    def test_objects_prop_pass_model_object(self):
+        res = self.obj.objects
+
+        assert res.model_obj is self.obj
+
+    def test_objects_prop_pass_new_cache(self):
+        self.obj._cacher = Mock(spec=MemoryCacher)
+
+        res = self.obj.objects
+
+        assert res._cache == self.obj._cacher.new_cache.return_value
+
+    def test_objects_prop_pass_request_limit_param(self):
+        test_data = 777
+        self.obj._request_limit = test_data
+
+        res = self.obj.objects
+
+        assert res.request_limit == test_data
 
     def test_load_pk_kwarg_treats_as_primary_key(self, randomize_record):
         pk_val = 123
