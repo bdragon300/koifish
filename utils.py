@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import deepcopy, copy
 
 class Slotinit(object):
     """
@@ -27,15 +27,13 @@ class Slotinit(object):
 class DeepcopySlotMixin:
     """Adds ability to deep copying all slots of the class and its ancestors"""
     def __deepcopy__(self, memo):
-        obj = self.__class__()
+        obj = copy(self)
         self_id = id(self)
         copied = memo.get(self_id)
 
         if copied is None:
             for slots in (getattr(cls, '__slots__', []) for cls in type(self).__mro__):
-                print(slots)
                 for slot in slots:
-                    print(slot)
                     try:
                         setattr(obj, slot, deepcopy(getattr(self, slot), memo))
                     except AttributeError:
