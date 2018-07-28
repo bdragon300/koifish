@@ -1,41 +1,43 @@
 from copy import deepcopy
-
-from cacher import MemoryCache
-from exc import EmptyCacheError
-from model.restrictions.restrictions import Filters, Sorts, Pagination
 from decimal import Decimal
+
+from cacher import MemoryCacher
+from model.restrictions.restrictions import Filters, Sorts, Pagination
 
 # Special constant used to point out that QuerySet has unknown count of objects (i.e. infinite count)
 Inf = Decimal('Inf')
 
 
 class BaseIterator:
-    def __init__(self, qs, cache_iterator):
+    def __init__(self, qs, cache):
         self._qs = qs
-        self._iter = cache_iterator
+        self._iter = iter(cache)
+        self._cache = cache
         self._offset = 0
 
 
 class ModelIterator(BaseIterator):
     def __next__(self):
-        try:
-            self._offset += 1
-            return self._qs.new_model(next(self._iter))
-        except EmptyCacheError:
+        # Fetch next page if needed
+        if self._offset % self._qs.request_limit == 0 \
+                and (self._cache.total_count is None or self._offset < self._cache.total_count) \
+                and self._offset not in self._cache:
             self._qs.cache_page(self._offset)
+        self._offset += 1
 
-            return self._qs.new_model(next(self._iter))
+        return self._qs.new_model(next(self._iter))
 
 
 class ValuesIterator(BaseIterator):
     def __next__(self):
-        try:
-            self._offset += 1
-            return next(self._iter)
-        except EmptyCacheError:
+        # Fetch next page if needed
+        if self._offset % self._qs.request_limit == 0 \
+                and (self._cache.total_count is None or self._offset < self._cache.total_count) \
+                and self._offset not in self._cache:
             self._qs.cache_page(self._offset)
+        self._offset += 1
 
-            return next(self._iter)
+        return next(self._iter)
 
 
 class QuerySet(object):
@@ -50,11 +52,15 @@ class QuerySet(object):
         :param request_limit: Limit of objects to request at once
         """
         self._model_obj = model_obj
-        self._cache = kwargs.get('cache', MemoryCache())
+        self._cache = kwargs.get('cache', MemoryCacher().new_cache())
         self._request_limit = kwargs.get('request_limit', self.default_request_limit)
         self._filters = Filters()
         self._sorts = Sorts()
         self._iterator_class = ModelIterator
+
+    @property
+    def request_limit(self):
+        return self._request_limit
 
     def filter(self, **kwargs):
         """
@@ -88,11 +94,10 @@ class QuerySet(object):
 
     def count(self):
         """Return total_count number came with response"""
-        try:
-            return self._cache.total_count
-        except EmptyCacheError:
-            t = self[0]  # Fill cache with the first page
-            return self._cache.total_count
+        if self._cache.total_count is None:
+            self.cache_page(0)  # Fill cache with the first page
+
+        return self._cache.total_count
 
     def exists(self):
         """Return True if the QuerySet contains any results"""
@@ -157,7 +162,7 @@ class QuerySet(object):
         return self._model_obj
 
     def __iter__(self):
-        return self._iterator_class(self, iter(self._cache))
+        return self._iterator_class(self, self._cache)
 
     def __len__(self):
         return self.count()
@@ -173,15 +178,18 @@ class QuerySet(object):
 
         def objs(start, stop, step):
             c = start or 0
+            step = step or 1
 
             # total_count may change during iteration
-            while c < self._cache.total_count and (stop is None or (c < stop)):
+            while c < self.count() and (stop is None or (c < stop)):
                 try:
                     o = self._cache[c]
-                    yield
-                except EmptyCacheError:
-                    self.cache_page(c)
-                    o = self._cache[c]
+                except IndexError:
+                    self.cache_page((c // self.request_limit) * 10)
+                    try:
+                        o = self._cache[c]
+                    except IndexError:
+                        break
 
                 yield self.new_model(o)
                 c += step
@@ -195,7 +203,7 @@ class QuerySet(object):
             return objs(start, stop, step)
         else:
             k = int(k)
-            if k >= self._cache.total_count:
+            if k >= self.count():
                 raise IndexError('Index out of range')
 
             x = list(objs(k, k + 1, 1))
