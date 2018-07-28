@@ -3,6 +3,7 @@ import weakref
 
 from fields import Field, ForeignField, OneToManyField
 # from structure.list import RequestSet
+from cacher import MemoryCacher
 from exc import ModelError, NotFoundError, ValidationError
 import booby
 import booby.errors
@@ -37,6 +38,7 @@ class BaseModel(booby.Model):
     _validate_on_read = False
     _search_impl_in_default_layer = True
     _request_limit = 10
+    _cacher = MemoryCacher()
 
     _primary_key = None  # Primary key field name
     _request_fields = {}  # _fields' slice of fields that included in requests

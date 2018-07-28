@@ -5,6 +5,7 @@ import pytest
 
 from model import Model
 from layer import ModelImpl
+from cacher import MemoryCacher
 from exc import ModelError, NotFoundError, ValidationError
 import fields
 
@@ -55,6 +56,7 @@ class TestModel:
         assert self.obj._validate_on_write is True
         assert self.obj._validate_on_read is False
         assert self.obj._search_impl_in_default_layer is True
+        assert self.obj._cacher is MemoryCacher
 
     def test_default_layer_class(self):
         assert self.obj._layer_class is self.test_default_layer_class
