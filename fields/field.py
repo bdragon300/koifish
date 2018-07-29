@@ -41,8 +41,8 @@ class Field(bfields.Field):
         1
 
     :param name: Specify an alternate key name to use when decoding and encoding.
+    :param description: Optional description.
     :param read_only: If `True`, the value is treated normally in decoding but omitted during encoding.
-    :param before_write: Optional. Callback used to change model before saving.
     :param \*validators: A list of field :mod:`validators` as positional arguments.
     """
     def __init__(self, *validators, **kwargs):
