@@ -156,6 +156,14 @@ class TestModel:
 
         assert res.request_limit == test_data
 
+    def test_primary_key_prop(self):
+        test_data = 'test_field'
+        self.obj._primary_key = 'test_field'
+
+        res = self.obj.primary_key
+
+        assert res == test_data
+
     def test_load_pk_kwarg_treats_as_primary_key(self, randomize_record):
         pk_val = 123
         test_data = randomize_record(dict(self.obj))
