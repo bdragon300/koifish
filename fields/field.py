@@ -73,7 +73,7 @@ class Field(bfields.Field):
         self.validators.extend(validators)
 
     def __get__(self, instance, owner):
-        val = super().__get__(instance, owner)
+        val = self._get_raw(instance, owner)
 
         if self._bi_mapping:
             return self._bi_mapping.inv[val]
@@ -84,7 +84,7 @@ class Field(bfields.Field):
         if self._bi_mapping:
             value = self._bi_mapping[value]
 
-        super().__set__(instance, value)
+        self._set_raw(instance, value)
 
     @staticmethod
     def _init_bi_mapping(choices):
@@ -98,6 +98,14 @@ class Field(bfields.Field):
 
         else:
             return None
+
+    def _get_raw(self, instance, owner):
+        """Get raw field value without using choices mapping"""
+        return super().__get__(instance, owner)
+
+    def _set_raw(self, instance, value):
+        """Set raw field value without using choices mapping"""
+        super().__set__(instance, value)
 
 
 class StringField(Field):
