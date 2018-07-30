@@ -314,7 +314,7 @@ class BaseModel(booby.Model):
     #
     #     return fields
 
-    def _get_primary_key(self):
+    def _get_primary_key(self):  # TODO: move to metaclass
         """
         Return primary key field name
         :raises ModelError: 0 or >1 primary key defined in model
