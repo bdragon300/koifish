@@ -54,7 +54,7 @@ class TestModel:
             field2 = Mock(spec=fields.OneToManyField, primary_key=False)
 
         class DerivedForeignFieldsStub(ForeignFieldsStub):
-            primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
+            primary_key_field2 = Mock(spec=fields.IntegerField, primary_key=True)
             field3 = Mock(spec=fields.ForeignKey, primary_key=False)
             field4 = Mock(spec=fields.OneToManyField, primary_key=False)
 
@@ -73,7 +73,7 @@ class TestModel:
                       if isinstance(v, fields.Field) and v.primary_key)
 
         assert len(primary_key) == 1
-        assert self.obj._primary_key == primary_key[0]
+        assert self.obj.primary_key == primary_key[0]
 
     def test_error_on_no_primary_key(self):
         with pytest.raises(ModelError):
@@ -81,6 +81,29 @@ class TestModel:
                 primary_key_field = fields.IntegerField(primary_key=False)
                 request_field = fields.IntegerField()
                 virtual_field = fields.IntegerField(virtual=True)
+
+    def test_override_primary_key_if_it_specified_explicitly_in_ancestor(self):
+        class ForeignFieldsStub(Model):
+            primary_key = 'primary_key_field'
+            primary_key_field = Mock(spec=fields.IntegerField, primary_key=False)
+
+        class DerivedForeignFieldsStub(ForeignFieldsStub):
+            primary_key_field2 = Mock(spec=fields.IntegerField, primary_key=False)
+
+        assert ForeignFieldsStub.primary_key == 'primary_key_field' \
+            and DerivedForeignFieldsStub.primary_key == 'primary_key_field'
+
+    def test_override_primary_key_if_it_specified_explicitly_in_successor(self):
+        class ForeignFieldsStub(Model):
+            primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
+
+        class DerivedForeignFieldsStub(ForeignFieldsStub):
+            primary_key = 'field3'
+            primary_key_field2 = Mock(spec=fields.IntegerField, primary_key=False)
+            field3 = Mock(spec=fields.IntegerField, primary_key=False)
+
+        assert ForeignFieldsStub.primary_key == 'primary_key_field' \
+            and DerivedForeignFieldsStub.primary_key == 'field3'
 
     def test_error_on_several_primary_keys(self):
         with pytest.raises(ModelError):
@@ -173,14 +196,6 @@ class TestModel:
 
         assert res.request_limit == test_data
 
-    def test_primary_key_prop(self):
-        test_data = 'test_field'
-        self.obj._primary_key = 'test_field'
-
-        res = self.obj.primary_key
-
-        assert res == test_data
-
     def test_fields_prop(self):
         assert self.obj.fields is self.obj._fields
 
@@ -191,7 +206,7 @@ class TestModel:
 
         self.obj.load(pk=pk_val)
 
-        self.obj._impl_object.get.assert_called_once_with(self.obj._primary_key, pk_val)
+        self.obj._impl_object.get.assert_called_once_with(self.obj.primary_key, pk_val)
 
     def test_load_fill_request_fields(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -264,7 +279,7 @@ class TestModel:
 
         self.obj.get(pk=pk_val)
 
-        get_mock.assert_called_once_with(self.obj._primary_key, pk_val)
+        get_mock.assert_called_once_with(self.obj.primary_key, pk_val)
 
     def test_get_returns_new_filled_object(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -452,8 +467,8 @@ class TestModel:
         test_data = randomize_record(dict(self.obj))
         self.obj.update(test_data)
         self.obj._impl_object.delete = Mock(return_value=None)
-        check_data = self.obj._primary_key, \
-                     self.obj._data[self.obj._fields[self.obj._primary_key]]
+        check_data = self.obj.primary_key, \
+                     self.obj._data[self.obj._fields[self.obj.primary_key]]
 
         self.obj.delete()
 

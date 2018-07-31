@@ -11,6 +11,7 @@ from .queryset import QuerySet
 class ModelMeta(booby.models.ModelMeta):
     def __new__(cls, name, bases, attrs):
         fields = {k: v for k, v in attrs.items() if not k.startswith('_') and isinstance(v, Field)}
+        pk = None
 
         # Pass model name to each foreign field
         for k, v in fields.items():
@@ -21,14 +22,21 @@ class ModelMeta(booby.models.ModelMeta):
             for k in bforeigns:
                 getattr(base, k).set_model_name(name)
 
-        # Find primary key
-        pk = list(k for k, v in attrs.items() if isinstance(v, Field) and v.primary_key)
-        if fields and len(pk) == 0:
-            raise ModelError("No primary key in model '{}'".format(name))
-        elif len(pk) > 1:
-            raise ModelError("More than one field is primary key in model '{}'".format(name))
-        elif pk:
-            attrs['_primary_key'] = pk[0]
+            p = hasattr(base, 'primary_key') and getattr(base, 'primary_key')
+            if p is not None:
+                pk = p
+
+        pk = pk or attrs.get('primary_key')
+
+        # Find primary key if it has not set explicitly
+        if pk is None:
+            pks = list(k for k, v in attrs.items() if isinstance(v, Field) and v.primary_key)
+            if fields and len(pks) == 0:
+                raise ModelError("No primary key in model '{}'".format(name))
+            elif len(pks) > 1:
+                raise ModelError("More than one field is primary key in model '{}'".format(name))
+            elif pks:
+                attrs['primary_key'] = pks[0]
 
         return super(ModelMeta, cls).__new__(cls, name, bases, attrs)
 
@@ -64,7 +72,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
     _request_limit = 10
     _cacher = MemoryCacher()
 
-    _primary_key = None  # Primary key field name
+    primary_key = None  # Primary key field name
     _request_fields = {}  # _fields' slice of fields that included in requests
 
     def __init__(self, _layer_class=None, **kwargs):
@@ -96,11 +104,6 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
             request_limit=self._request_limit
         )
         return obj
-
-    @property
-    def primary_key(self):
-        """Primary key name"""
-        return self._primary_key
 
     @property
     def fields(self):
@@ -172,7 +175,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
 
         data = {k: self._data.get(v) for k, v in self._request_fields.items()}
 
-        if self[self._primary_key] is None:
+        if self[self.primary_key] is None:
             res = self._impl_object.create(data)
         else:
             res = self._impl_object.update(data)
@@ -195,7 +198,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         if self._deleted:
             raise ModelError('Record is already deleted')
 
-        pk = self._primary_key
+        pk = self.primary_key
         pk_val = self._data[self._fields[pk]]
 
         if pk_val is None:
@@ -259,8 +262,8 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         pk = list(kwargs)[0]
         pk_val = kwargs[pk]
         if 'pk' in kwargs:
-            pk = self._primary_key
-        if pk != self._primary_key:
+            pk = self.primary_key
+        if pk != self.primary_key:
             raise ValueError("{} is not primary key field".format(pk))
         if pk_val is None:
             raise ValueError("None value was passed as primary key".format(pk))
