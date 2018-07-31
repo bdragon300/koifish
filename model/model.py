@@ -1,12 +1,39 @@
-import booby
 import booby.errors
+import booby.models
 
 from cacher import MemoryCacher
 from exc import ModelError, NotFoundError, ValidationError
+from fields.field import Field
+from fields.foreign import ForeignRel
 from .queryset import QuerySet
 
 
-class BaseModel(booby.Model):
+class ModelMeta(booby.models.ModelMeta):
+    def __new__(cls, name, bases, attrs):
+        fields = {k: v for k, v in attrs.items() if not k.startswith('_') and isinstance(v, Field)}
+
+        # Pass model name to each foreign field
+        for k, v in fields.items():
+            if isinstance(v, ForeignRel):
+                attrs[k].set_model_name(name)
+        for base in bases:
+            bforeigns = list(k for k, v in base.__dict__.items() if not k.startswith('_') and isinstance(v, ForeignRel))
+            for k in bforeigns:
+                getattr(base, k).set_model_name(name)
+
+        # Find primary key
+        pk = list(k for k, v in attrs.items() if isinstance(v, Field) and v.primary_key)
+        if fields and len(pk) == 0:
+            raise ModelError("No primary key in model '{}'".format(name))
+        elif len(pk) > 1:
+            raise ModelError("More than one field is primary key in model '{}'".format(name))
+        elif pk:
+            attrs['_primary_key'] = pk[0]
+
+        return super(ModelMeta, cls).__new__(cls, name, bases, attrs)
+
+
+class BaseModel(booby.models.Model, metaclass=ModelMeta):
     # TODO: make __copy__
     """
     Base class for user-defined ORM Models. Built on top of `booby` model, so see its docs.
@@ -57,12 +84,6 @@ class BaseModel(booby.Model):
                 {k: v for k, v in self._fields.items() if not v.virtual}
 
         super().__init__(**kwargs)
-        # self._fields = self.instantiate_fields(self)
-        # TODO: instantiate ForeignField
-
-        # Set primary key field name as class variable
-        if not cls._primary_key:
-            cls._primary_key = self._get_primary_key()
 
         self._impl_object = self._get_impl(self._layer_class)()
 
@@ -266,71 +287,6 @@ class BaseModel(booby.Model):
         #  value as enum value
         res = {self._request_fields[k]: v for k, v in data.items() if k in self._request_fields}
         self._data = res
-
-    # @staticmethod
-    # def instantiate_fields(obj):
-    #     """
-    #     Instantiates field objects from defined fields
-    #     :param obj: Entity object
-    #     :return: {field_name: Field obj}
-    #     """
-    #     cls = obj.__class__
-    #     fields = {}
-    #
-    #     # Instantiate primary key field firstly
-    #     field_names = [f for f in dir(cls) if not f.startswith('_') and f != cls.primary_key]
-    #     field_names.insert(0, cls.primary_key)
-    #
-    #     for i in field_names:
-    #         class_field = getattr(cls, i)
-    #         if isinstance(class_field, Field):
-    #             if obj.dummy:
-    #                 fields[i] = None
-    #                 continue
-    #             else:
-    #                 fields[i] = copy(class_field)
-    #                 fields[i].name = i
-    #         else:
-    #             continue
-    #
-    #         # ForeignField.related_entity specified only
-    #         if isinstance(class_field, ForeignField):
-    #             if class_field.request_set:
-    #                 fields[i].request_set = class_field.request_set
-    #             else:
-    #                 if type(class_field.related_entity) != str:
-    #                     raise TypeError("field {}: related_entity is not string".format(class_field))
-    #
-    #                 # Try to instantiate related_entity
-    #                 import entities
-    #                 # TODO: search dummy in the module contained self first
-    #                 dummy_entity = getattr(entities, class_field.related_entity)
-    #                 if dummy_entity is None:
-    #                     raise TypeError("Unable to find class {}.{}".format('entities', class_field.related_entity))
-    #
-    #                 fields[i].request_set = dummy_entity(obj.layer_factory, dummy=True).objects
-    #
-    #         # OneToMany field needs to be set entity primary key obj
-    #         if isinstance(class_field, OneToManyField):
-    #             fields[i].primary_key_obj = weakref.proxy(fields[cls.primary_key])
-    #
-    #     if not fields:
-    #         raise TypeError("{} has not defined fields".format(cls.__name__))
-    #
-    #     return fields
-
-    def _get_primary_key(self):  # TODO: move to metaclass
-        """
-        Return primary key field name
-        :raises ModelError: 0 or >1 primary key defined in model
-        :return: Field object name
-        """
-        pk = list(k for k, v in self._fields.items() if v.primary_key)
-        if len(pk) == 0:
-            raise ModelError("No primary key in model '{}'".format(self.__class__.__name__))
-        elif len(pk) > 1:
-            raise ModelError("More than one field is primary key in model '{}'".format(self.__class__.__name__))
-        return pk[0]
 
     def _get_impl(self, layer_class):
         """

@@ -1,5 +1,5 @@
 import random
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -46,6 +46,48 @@ class TestModel:
 
         self.model_class._default_layer = self.test_default_layer_class
         self.obj = self.model_class()
+
+    def test_pass_model_name_to_foreign_fields(self):
+        class ForeignFieldsStub(Model):
+            primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
+            field1 = Mock(spec=fields.ForeignKey, primary_key=False)
+            field2 = Mock(spec=fields.OneToManyField, primary_key=False)
+
+        class DerivedForeignFieldsStub(ForeignFieldsStub):
+            primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
+            field3 = Mock(spec=fields.ForeignKey, primary_key=False)
+            field4 = Mock(spec=fields.OneToManyField, primary_key=False)
+
+        ancestor_fields_calls = (
+            call(ForeignFieldsStub.__name__),
+            call(DerivedForeignFieldsStub.__name__)
+        )
+
+        ForeignFieldsStub.field1.set_model_name.assert_has_calls(ancestor_fields_calls)
+        ForeignFieldsStub.field2.set_model_name.assert_has_calls(ancestor_fields_calls)
+        DerivedForeignFieldsStub.field3.set_model_name.assert_called_once_with(DerivedForeignFieldsStub.__name__)
+        DerivedForeignFieldsStub.field4.set_model_name.assert_called_once_with(DerivedForeignFieldsStub.__name__)
+
+    def test_primary_key_determine(self):
+        primary_key = list(k for k, v in self.obj.__class__.__dict__.items()
+                      if isinstance(v, fields.Field) and v.primary_key)
+
+        assert len(primary_key) == 1
+        assert self.obj._primary_key == primary_key[0]
+
+    def test_error_on_no_primary_key(self):
+        with pytest.raises(ModelError):
+            class ModelStubNoPrimary(Model):
+                primary_key_field = fields.IntegerField(primary_key=False)
+                request_field = fields.IntegerField()
+                virtual_field = fields.IntegerField(virtual=True)
+
+    def test_error_on_several_primary_keys(self):
+        with pytest.raises(ModelError):
+            class ModelStubTwoPrimary(Model):
+                primary_key_field = fields.IntegerField(primary_key=False)
+                request_field = fields.IntegerField()
+                virtual_field = fields.IntegerField(virtual=True)
 
     def test_props_default_value(self):
         assert self.obj._deleted is False
@@ -96,31 +138,6 @@ class TestModel:
                       if isinstance(v, fields.Field) and not v.virtual}
 
         assert self.obj._request_fields == check_data
-
-    def test_primary_key_determine(self):
-        primary_key = list(k for k, v in self.obj.__class__.__dict__.items()
-                      if isinstance(v, fields.Field) and v.primary_key)
-
-        assert len(primary_key) == 1
-        assert self.obj._primary_key == primary_key[0]
-
-    def test_error_on_no_primary_key(self):
-        class ModelStubNoPrimary(Model):
-            primary_key_field = fields.IntegerField(primary_key=False)
-            request_field = fields.IntegerField()
-            virtual_field = fields.IntegerField(virtual=True)
-
-        with pytest.raises(ModelError):
-            obj = ModelStubNoPrimary(self.test_layer_class)
-
-    def test_error_on_several_primary_keys(self):
-        class ModelStubTwoPrimary(Model):
-            primary_key_field = fields.IntegerField(primary_key=False)
-            request_field = fields.IntegerField()
-            virtual_field = fields.IntegerField(virtual=True)
-
-        with pytest.raises(ModelError):
-            obj = ModelStubTwoPrimary(self.test_layer_class)
 
     def test_model_init_by_kwargs(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
