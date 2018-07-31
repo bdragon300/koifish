@@ -164,6 +164,9 @@ class TestModel:
 
         assert res == test_data
 
+    def test_fields_prop(self):
+        assert self.obj.fields is self.obj._fields
+
     def test_load_pk_kwarg_treats_as_primary_key(self, randomize_record):
         pk_val = 123
         test_data = randomize_record(dict(self.obj))

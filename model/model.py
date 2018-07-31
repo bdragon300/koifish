@@ -81,6 +81,11 @@ class BaseModel(booby.Model):
         """Primary key name"""
         return self._primary_key
 
+    @property
+    def fields(self):
+        """Field objects mapping"""
+        return self._fields
+
     def load(self, **kwargs):
         """
         Fill out this model with record obtained by primary key. Receives only one kwarg with primary key name/value.
