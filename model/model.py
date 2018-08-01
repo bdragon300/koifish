@@ -22,14 +22,13 @@ class ModelMeta(booby.models.ModelMeta):
             for k in bforeigns:
                 getattr(base, k).set_model_name(name)
 
-            p = hasattr(base, 'primary_key') and getattr(base, 'primary_key')
-            if p is not None:
-                pk = p
+            if hasattr(base, 'primary_key'):
+                pk = getattr(base, 'primary_key') or pk
 
-        pk = pk or attrs.get('primary_key')
+        pk = attrs.get('primary_key') or pk
 
-        # Find primary key if it has not set explicitly
-        if pk is None:
+        # Find primary key among fields if `primary_key` property has not explicitly set anywhere in model hierarchy
+        if not pk:
             pks = list(k for k, v in attrs.items() if isinstance(v, Field) and v.primary_key)
             if fields and len(pks) == 0:
                 raise ModelError("No primary key in model '{}'".format(name))

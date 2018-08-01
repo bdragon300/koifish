@@ -84,14 +84,14 @@ class TestModel:
 
     def test_override_primary_key_if_it_specified_explicitly_in_ancestor(self):
         class ForeignFieldsStub(Model):
-            primary_key = 'primary_key_field'
+            primary_key = 'override_pk'
             primary_key_field = Mock(spec=fields.IntegerField, primary_key=False)
 
         class DerivedForeignFieldsStub(ForeignFieldsStub):
             primary_key_field2 = Mock(spec=fields.IntegerField, primary_key=False)
 
-        assert ForeignFieldsStub.primary_key == 'primary_key_field' \
-            and DerivedForeignFieldsStub.primary_key == 'primary_key_field'
+        assert ForeignFieldsStub.primary_key == 'override_pk' \
+            and DerivedForeignFieldsStub.primary_key == 'override_pk'
 
     def test_override_primary_key_if_it_specified_explicitly_in_successor(self):
         class ForeignFieldsStub(Model):
@@ -103,6 +103,19 @@ class TestModel:
             field3 = Mock(spec=fields.IntegerField, primary_key=False)
 
         assert ForeignFieldsStub.primary_key == 'primary_key_field' \
+            and DerivedForeignFieldsStub.primary_key == 'field3'
+
+    def test_override_primary_key_if_it_specified_explicitly_everywhere(self):
+        class ForeignFieldsStub(Model):
+            primary_key = 'override_pk'
+            primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
+
+        class DerivedForeignFieldsStub(ForeignFieldsStub):
+            primary_key = 'field3'
+            primary_key_field2 = Mock(spec=fields.IntegerField, primary_key=False)
+            field3 = Mock(spec=fields.IntegerField, primary_key=False)
+
+        assert ForeignFieldsStub.primary_key == 'override_pk' \
             and DerivedForeignFieldsStub.primary_key == 'field3'
 
     def test_error_on_several_primary_keys(self):
