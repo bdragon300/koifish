@@ -522,17 +522,17 @@ class TestModel:
 
     def test_get_list_calls_impl_method(self):
         self.obj._impl_object.get_list = Mock()
-        test_data = Mock()
+        filters, sorts, pagination = Mock(), Mock(), Mock()
 
-        res = self.obj.get_list(test_data)
+        res = self.obj.get_list(filters, sorts, pagination)
 
-        self.obj._impl_object.get_list.assert_called_once_with(test_data)
+        self.obj._impl_object.get_list.assert_called_once_with(filters, sorts, pagination)
 
     def test_get_list_returns_impl_method_result(self):
         self.obj._impl_object.get_list = Mock()
-        test_data = Mock()
+        filters, sorts, pagination = Mock(), Mock(), Mock()
 
-        res = self.obj.get_list(test_data)
+        res = self.obj.get_list(filters, sorts, pagination)
 
         assert res == self.obj._impl_object.get_list.return_value
 

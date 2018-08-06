@@ -209,13 +209,15 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
 
         return self
 
-    def get_list(self, restrictions) -> list:
+    def get_list(self, filters, sorts, pagination) -> list:
         """
         Method used by RequestSet to obtain list of records. Does not change internal state of model.
-        :param restrictions: RequestSetRestrictions
+        :param filters: Filters object
+        :param sorts: Sorts object
+        :param pagination: Pagination object
         :return: list with record dicts
         """
-        return self._impl_object.get_list(restrictions)
+        return self._impl_object.get_list(filters, sorts, pagination)
 
     def update(self, *args, **kwargs):
         """This method updates the `model` fields values with the given `dict`.
