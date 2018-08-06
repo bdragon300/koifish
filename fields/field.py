@@ -73,6 +73,9 @@ class Field(bfields.Field):
         self.validators.extend(validators)
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
+
         val = self._get_raw(instance, owner)
 
         if self._bi_mapping:

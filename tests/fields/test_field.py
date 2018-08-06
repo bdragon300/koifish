@@ -63,6 +63,12 @@ class TestField:
 
         assert res == 1
 
+    def test_get_descriptor_return_self_on_class_access(self):
+        obj = Field(choices=choices_dict_stub)
+        res = obj.__get__(None, object)
+
+        assert res is obj
+
     @pytest.mark.parametrize('choice,val', {x: y.value for x, y in ChoicesEnumStub.__members__.items()}.items())
     def test_set_descriptor_enum_value_mapping(self, choice, val):
         obj = Field(choices=ChoicesEnumStub)
