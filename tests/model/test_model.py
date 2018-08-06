@@ -63,10 +63,10 @@ class TestModel:
             call(DerivedForeignFieldsStub.__name__)
         )
 
-        ForeignFieldsStub.field1.set_model_name.assert_has_calls(ancestor_fields_calls)
-        ForeignFieldsStub.field2.set_model_name.assert_has_calls(ancestor_fields_calls)
-        DerivedForeignFieldsStub.field3.set_model_name.assert_called_once_with(DerivedForeignFieldsStub.__name__)
-        DerivedForeignFieldsStub.field4.set_model_name.assert_called_once_with(DerivedForeignFieldsStub.__name__)
+        ForeignFieldsStub.field1.init.assert_has_calls(ancestor_fields_calls)
+        ForeignFieldsStub.field2.init.assert_has_calls(ancestor_fields_calls)
+        DerivedForeignFieldsStub.field3.init.assert_called_once_with(DerivedForeignFieldsStub.__name__)
+        DerivedForeignFieldsStub.field4.init.assert_called_once_with(DerivedForeignFieldsStub.__name__)
 
     def test_primary_key_determine(self):
         primary_key = list(k for k, v in self.obj.__class__.__dict__.items()

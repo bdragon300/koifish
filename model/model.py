@@ -16,11 +16,11 @@ class ModelMeta(booby.models.ModelMeta):
         # Pass model name to each foreign field
         for k, v in fields.items():
             if isinstance(v, ForeignRel):
-                attrs[k].set_model_name(name)
+                attrs[k].init(name)
         for base in bases:
             bforeigns = list(k for k, v in base.__dict__.items() if not k.startswith('_') and isinstance(v, ForeignRel))
             for k in bforeigns:
-                getattr(base, k).set_model_name(name)
+                getattr(base, k).init(name)
 
             if hasattr(base, 'primary_key'):
                 pk = getattr(base, 'primary_key') or pk
