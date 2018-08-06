@@ -39,4 +39,4 @@ class TestImpl:
 
     def test_get_list(self):
         with pytest.raises(NotImplementedError):
-            self.obj.get_list(None)
+            self.obj.get_list(None, None, None)

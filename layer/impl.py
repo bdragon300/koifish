@@ -51,10 +51,12 @@ class BaseModelImpl:
         """
         raise NotImplementedError
 
-    def get_list(self, restrictions, **kwargs) -> ListResponse:
+    def get_list(self, filters, sorts, pagination, **kwargs) -> ListResponse:
         """
         Get records list using given restrictions
-        :param restrictions: restrictions object
+        :param filters: Filters object
+        :param sorts: Sorts object
+        :param pagination: Pagination object
         :return: ListResponse object with records
         """
         raise NotImplementedError
