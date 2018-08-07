@@ -214,6 +214,8 @@ class QuerySet(object):
         for k, v in self.__dict__.items():
             if k == '_cache':
                 obj.__dict__[k] = getattr(self, k).new()
+            elif k == '_model_obj':
+                obj.__dict__[k] = getattr(self, k)
             else:
                 obj.__dict__[k] = deepcopy(v, memodict)
 
