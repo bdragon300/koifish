@@ -25,90 +25,17 @@ class Field(bfields.Field):
     :param required: If `True` this field value should not be `None`.
     :param primary_key: `True` if this field is primary key in model. Default is `False`
     :param virtual: `True` means this field will not be included in data exchange. Default is `False`
-    :param choices: Possible field values with values mapping (`dict` or `enum.Enum`) or without mapping (`list`).
-
-        A `list` parameter simply sets values which this field can have. `dict` or `enum.Enum` parameters also set
-        mapping between field value and real model value. This behavior is similar to enums. Type validation applies to
-        a real value type.
-        E.g.:
-
-        class Car(Model):
-            color = Integer(choices={'BLUE': 0, 'RED': 1})
-
-        car.color = 'RED'
-        print(car._data[car._fields['color']])  # real data stored in model
-
-        1
-
+    :param choices: A `list` of values where this field value should be in.
     :param name: Specify an alternate key name to use when decoding and encoding.
     :param description: Optional description.
     :param read_only: If `True`, the value is treated normally in decoding but omitted during encoding.
     :param \*validators: A list of field :mod:`validators` as positional arguments.
     """
     def __init__(self, *validators, **kwargs):
-        self.options = kwargs
-
-        self.default = kwargs.get('default')
-        self.description = kwargs.get('description', '')
-        self.required = kwargs.get('required', False)
-        self.choices = kwargs.get('choices', [])
         self.primary_key = kwargs.get('primary_key', False)
         self.virtual = kwargs.get('virtual', False)
 
-        # Setup field validators
-        self.validators = []
-        self._bi_mapping = None
-
-        if self.required:
-            self.validators.append(builtin_validators.Required())
-
-        if self.choices:
-            self._bi_mapping = self._init_bi_mapping(self.choices)
-            if self._bi_mapping:
-                self.validators = list(filter(lambda x: isinstance(x, builtin_validators.In), self.validators))
-                self.validators.append(builtin_validators.In(list(self._bi_mapping.values())))
-            else:
-                self.validators.append(builtin_validators.In(list(self.choices)))
-
-        self.validators.extend(validators)
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-
-        val = self._get_raw(instance, owner)
-
-        if self._bi_mapping and val is not None:
-            return self._bi_mapping.inv[val]
-        else:
-            return val
-
-    def __set__(self, instance, value):
-        if self._bi_mapping:
-            value = self._bi_mapping[value]
-
-        self._set_raw(instance, value)
-
-    @staticmethod
-    def _init_bi_mapping(choices):
-        # dict, enum items and their values are in dict
-        if isinstance(choices, dict):
-            return bidict(choices)
-
-        # enum.Enum, enum items and their values are in Enum class
-        elif isinstance(choices, type) and issubclass(choices, Enum):
-            return bidict({x: y.value for x, y in choices.__members__.items()})
-
-        else:
-            return None
-
-    def _get_raw(self, instance, owner):
-        """Get raw field value without using choices mapping"""
-        return super().__get__(instance, owner)
-
-    def _set_raw(self, instance, value):
-        """Set raw field value without using choices mapping"""
-        super().__set__(instance, value)
+        super().__init__(*validators, **kwargs)
 
 
 class StringField(Field):
