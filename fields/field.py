@@ -66,9 +66,9 @@ class Field(bfields.Field):
             self._bi_mapping = self._init_bi_mapping(self.choices)
             if self._bi_mapping:
                 self.validators = list(filter(lambda x: isinstance(x, builtin_validators.In), self.validators))
-                self.validators.append(builtin_validators.In(self._bi_mapping.values()))
+                self.validators.append(builtin_validators.In(list(self._bi_mapping.values())))
             else:
-                self.validators.append(builtin_validators.In(self.choices))
+                self.validators.append(builtin_validators.In(list(self.choices)))
 
         self.validators.extend(validators)
 
