@@ -55,6 +55,15 @@ class TestField:
 
         assert res == 1
 
+    @pytest.mark.parametrize('choices', (ChoicesEnumStub, choices_dict_stub))
+    def test_get_descriptor_none_value_with_mapping(self, choices):
+        obj = Field(choices=choices)
+        model_mock = Mock(_data={obj: None})
+
+        res = obj.__get__(model_mock, None)
+
+        assert res is None
+
     def test_get_descriptor_no_choices(self):
         obj = Field()
         model_mock = Mock(_data={obj: 1})

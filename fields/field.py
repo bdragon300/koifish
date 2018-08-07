@@ -78,7 +78,7 @@ class Field(bfields.Field):
 
         val = self._get_raw(instance, owner)
 
-        if self._bi_mapping:
+        if self._bi_mapping and val is not None:
             return self._bi_mapping.inv[val]
         else:
             return val
