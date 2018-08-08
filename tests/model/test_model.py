@@ -227,6 +227,27 @@ class TestModel:
 
         assert not (self.obj == b) and self.obj != b  # comparison always gives False
 
+    def test_getitem_return_raw_value(self, randomize_record):
+        record = randomize_record(dict(self.obj))
+        self.model_class.request_field.__get__ = Mock()
+        obj = self.model_class(**record)
+
+        res = obj['request_field']
+
+        assert res == record['request_field']
+        self.model_class.request_field.__get__.assert_not_called()
+
+    def test_setitem_set_raw_value(self, randomize_record):
+        self.model_class.request_field.__set__ = Mock()
+        record = randomize_record(dict(self.obj))
+        obj = self.model_class(**record)
+        test_data = 123
+
+        self.obj['request_field'] = test_data
+
+        assert self.obj['request_field'] == test_data
+        self.model_class.request_field.__set__.assert_not_called()
+
     def test_objects_prop_return_new_queryset_on_every_call(self):
         obj1 = self.obj.objects
         obj2 = self.obj.objects

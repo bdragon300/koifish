@@ -103,6 +103,18 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
 
         return self[self.primary_key] == other[other.primary_key]
 
+    def __getitem__(self, k):
+        if k not in self._fields:
+            raise KeyError(k)
+
+        return self._data[self._fields[k]]
+
+    def __setitem__(self, k, v):
+        if k not in self._fields:
+            raise KeyError(k)
+
+        self._data[self._fields[k]] = v
+
     @property
     def objects(self):
         """New empty QuerySet instance, that contains current model objects"""
