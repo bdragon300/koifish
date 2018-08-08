@@ -183,6 +183,50 @@ class TestModel:
 
         assert test_data == t
 
+    @pytest.mark.parametrize('a_pk, b_pk', (
+        (123, 123),
+        (123, 456)
+    ))
+    def test_eq_primary_keys(self, model_stub_class, randomize_record, a_pk, b_pk):
+        a, b = model_stub_class(self.test_layer_class), model_stub_class(self.test_layer_class)
+        a.update(**randomize_record(dict(a)))
+        b.update(**randomize_record(dict(b)))
+
+        a.primary_key_field = a_pk
+        b.primary_key_field = b_pk
+
+        assert (a == b) == (a_pk == b_pk) and (not(a != b)) == (not(a_pk != b_pk))
+
+    def test_eq_another_value_type(self, randomize_record):
+        test_data = object()
+        self.obj.update(**randomize_record(dict(self.obj)))
+
+        assert not(self.obj == test_data) and self.obj != test_data  # comparison always gives False
+
+    def test_eq_false_on_different_model_classes(self, model_stub_class, randomize_record):
+        class AnotherModelStub(Model):
+            primary_key_field = fields.IntegerField(primary_key=True)
+
+        a = model_stub_class(self.test_layer_class)
+        b = AnotherModelStub(self.test_layer_class)
+        a.update(**randomize_record(dict(a)))
+        b.update(**randomize_record(dict(b)))
+        a.primary_key_field = b.primary_key_field = 123
+
+        assert not (self.obj == b) and self.obj != b  # comparison always gives False
+
+    def test_eq_false_on_base_and_derived_model(self, model_stub_class, randomize_record):
+        class AnotherModelStub(model_stub_class):
+            some_field = fields.IntegerField()
+
+        a = model_stub_class(self.test_layer_class)  # base
+        b = AnotherModelStub(self.test_layer_class)  # derived
+        a.update(**randomize_record(dict(a)))
+        b.update(**randomize_record(dict(b)))
+        a.primary_key_field = b.primary_key_field = 123
+
+        assert not (self.obj == b) and self.obj != b  # comparison always gives False
+
     def test_objects_prop_return_new_queryset_on_every_call(self):
         obj1 = self.obj.objects
         obj2 = self.obj.objects

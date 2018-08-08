@@ -94,6 +94,15 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
 
         self._impl_object = self._get_impl(self._layer_class)()
 
+    def __eq__(self, other):
+        if not isinstance(other, BaseModel):
+            return False
+
+        if self.__class__ is not other.__class__:
+            return False
+
+        return self[self.primary_key] == other[other.primary_key]
+
     @property
     def objects(self):
         """New empty QuerySet instance, that contains current model objects"""
