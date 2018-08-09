@@ -6,22 +6,20 @@ from exc import ModelError, NotFoundError, ValidationError
 from fields.field import Field
 from fields.foreign import ForeignRel
 from .queryset import QuerySet
+import weakref
 
 
 class ModelMeta(booby.models.ModelMeta):
+    models = {}
+
     def __new__(cls, name, bases, attrs):
+        if name in cls.models:
+            raise ModelError("'{}' model is already defined in '{}'".format(name, cls.models[name].__module__))
+
         fields = {k: v for k, v in attrs.items() if not k.startswith('_') and isinstance(v, Field)}
         pk = None
 
-        # Pass model name to each foreign field
-        for k, v in fields.items():
-            if isinstance(v, ForeignRel):
-                attrs[k].init(name)
         for base in bases:
-            bforeigns = list(k for k, v in base.__dict__.items() if not k.startswith('_') and isinstance(v, ForeignRel))
-            for k in bforeigns:
-                getattr(base, k).init(name)
-
             if hasattr(base, 'primary_key'):
                 pk = getattr(base, 'primary_key') or pk
 
@@ -37,7 +35,22 @@ class ModelMeta(booby.models.ModelMeta):
             elif pks:
                 attrs['primary_key'] = pks[0]
 
-        return super(ModelMeta, cls).__new__(cls, name, bases, attrs)
+        attrs['_meta'] = weakref.proxy(cls)
+
+        c = super(ModelMeta, cls).__new__(cls, name, bases, attrs)
+        if name != 'BaseModel':
+            cls.models[name] = c
+
+        # Pass model class to each foreign field
+        for k, v in fields.items():
+            if isinstance(v, ForeignRel):
+                attrs[k].init(c)
+        for base in bases:
+            bforeigns = list(k for k, v in base.__dict__.items() if not k.startswith('_') and isinstance(v, ForeignRel))
+            for k in bforeigns:
+                getattr(base, k).init(c)
+
+        return c
 
 
 class BaseModel(booby.models.Model, metaclass=ModelMeta):

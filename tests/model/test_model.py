@@ -6,7 +6,8 @@ import pytest
 import fields
 from cacher import MemoryCacher
 from exc import ModelError, NotFoundError, ValidationError
-from model import Model, QuerySet
+from model.model import Model, ModelMeta
+from model import QuerySet
 
 
 @pytest.fixture()
@@ -28,26 +29,43 @@ def model_stub_class():
     return ModelStub
 
 
-class TestModel:
+class TestModelMeta:
     @pytest.fixture(autouse=True)
-    def setup(self, model_stub_class, randomize_record):
-        self.model_class = model_stub_class
+    def setup(self):
+        yield
 
-        self.test_impl_obj = Mock()
-        self.test_default_impl_obj = Mock()
-        self.test_layer_class = Mock(
-            get_impl=Mock(return_value=lambda *a, **kw: self.test_impl_obj),
-            __name__='TestLayer'
-        )
-        self.test_default_layer_class = Mock(
-            get_impl=Mock(return_value=lambda *a, **kw: self.test_default_impl_obj),
-            __name__='TestDefaultLayer'
-        )
+        ModelMeta.models = {}
 
-        self.model_class._default_layer = self.test_default_layer_class
-        self.obj = self.model_class()
+    def test_models_initial_value(self):
+        assert ModelMeta.models == {}
 
-    def test_pass_model_name_to_foreign_fields(self):
+    def test_pass_model_classes_names_to_models_variable(self):
+        class ModelStub(Model):
+            primary_key_field = fields.IntegerField(primary_key=True)
+            request_field = fields.IntegerField()
+            virtual_field = fields.IntegerField(virtual=True)
+
+        class AnotherModelStub(Model):
+            primary_key_field2 = fields.IntegerField(primary_key=True)
+
+        check_data = {
+            'ModelStub': ModelStub,
+            'AnotherModelStub': AnotherModelStub
+        }
+
+        assert ModelMeta.models == check_data
+
+    def test_error_define_model_with_the_same_name_twice(self):
+        class ModelStub(Model):
+            primary_key_field = fields.IntegerField(primary_key=True)
+            request_field = fields.IntegerField()
+            virtual_field = fields.IntegerField(virtual=True)
+
+        with pytest.raises(ModelError):
+            class ModelStub(Model):
+                primary_key_field2 = fields.IntegerField(primary_key=True)
+
+    def test_pass_model_class_to_foreign_fields(self):
         class ForeignFieldsStub(Model):
             primary_key_field = Mock(spec=fields.IntegerField, primary_key=True)
             field1 = Mock(spec=fields.ForeignKey, primary_key=False)
@@ -59,21 +77,21 @@ class TestModel:
             field4 = Mock(spec=fields.OneToManyField, primary_key=False)
 
         ancestor_fields_calls = (
-            call(ForeignFieldsStub.__name__),
-            call(DerivedForeignFieldsStub.__name__)
+            call(ForeignFieldsStub),
+            call(DerivedForeignFieldsStub)
         )
 
         ForeignFieldsStub.field1.init.assert_has_calls(ancestor_fields_calls)
         ForeignFieldsStub.field2.init.assert_has_calls(ancestor_fields_calls)
-        DerivedForeignFieldsStub.field3.init.assert_called_once_with(DerivedForeignFieldsStub.__name__)
-        DerivedForeignFieldsStub.field4.init.assert_called_once_with(DerivedForeignFieldsStub.__name__)
+        DerivedForeignFieldsStub.field3.init.assert_called_once_with(DerivedForeignFieldsStub)
+        DerivedForeignFieldsStub.field4.init.assert_called_once_with(DerivedForeignFieldsStub)
 
-    def test_primary_key_determine(self):
-        primary_key = list(k for k, v in self.obj.__class__.__dict__.items()
+    def test_primary_key_determine(self, model_stub_class):
+        primary_key = list(k for k, v in model_stub_class.__dict__.items()
                       if isinstance(v, fields.Field) and v.primary_key)
 
         assert len(primary_key) == 1
-        assert self.obj.primary_key == primary_key[0]
+        assert model_stub_class.primary_key == primary_key[0]
 
     def test_error_on_no_primary_key(self):
         with pytest.raises(ModelError):
@@ -124,6 +142,30 @@ class TestModel:
                 primary_key_field = fields.IntegerField(primary_key=False)
                 request_field = fields.IntegerField()
                 virtual_field = fields.IntegerField(virtual=True)
+
+
+class TestModel:
+    @pytest.fixture(autouse=True)
+    def setup(self, model_stub_class, randomize_record):
+        self.model_class = model_stub_class
+
+        self.test_impl_obj = Mock()
+        self.test_default_impl_obj = Mock()
+        self.test_layer_class = Mock(
+            get_impl=Mock(return_value=lambda *a, **kw: self.test_impl_obj),
+            __name__='TestLayer'
+        )
+        self.test_default_layer_class = Mock(
+            get_impl=Mock(return_value=lambda *a, **kw: self.test_default_impl_obj),
+            __name__='TestDefaultLayer'
+        )
+
+        self.model_class._default_layer = self.test_default_layer_class
+        self.obj = self.model_class()
+
+        yield
+
+        ModelMeta.models = {}
 
     def test_props_default_value(self):
         assert self.obj._deleted is False
