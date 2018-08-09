@@ -107,13 +107,13 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         if k not in self._fields:
             raise KeyError(k)
 
-        return self._data[self._fields[k]]
+        return Field.__get__(self.fields[k], self, None)
 
     def __setitem__(self, k, v):
         if k not in self._fields:
             raise KeyError(k)
 
-        self._data[self._fields[k]] = v
+        Field.__set__(self._fields[k], self, v)
 
     @property
     def objects(self):
