@@ -44,6 +44,9 @@ class BaseAdapter(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def parse_response(self, response): ...
+
+    @abstractmethod
     def get(self, pk, pk_val, *args, **kwargs): ...
 
     @abstractmethod
