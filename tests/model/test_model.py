@@ -326,7 +326,7 @@ class TestModel:
 
         self.obj.load(pk=pk_val)
 
-        self.obj._impl_object.get.assert_called_once_with(self.obj.primary_key, pk_val)
+        self.obj._impl_object.get.assert_called_once_with(self.obj.__class__, self.obj.primary_key, pk_val)
 
     def test_load_fill_request_fields(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -395,11 +395,11 @@ class TestModel:
     def test_get_pk_kwarg_treats_as_primary_key(self, randomize_record):
         pk_val = 123
         test_data = randomize_record(dict(self.obj))
-        get_mock = self.obj._impl_object.get = Mock(return_value=test_data)
+        self.obj._impl_object.get = Mock(return_value=test_data)
 
         self.obj.get(pk=pk_val)
 
-        get_mock.assert_called_once_with(self.obj.primary_key, pk_val)
+        self.obj._impl_object.get.assert_called_once_with(self.obj.__class__, self.obj.primary_key, pk_val)
 
     def test_get_returns_new_filled_object(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -483,7 +483,7 @@ class TestModel:
 
         self.obj.save()
 
-        self.obj._impl_object.create.assert_called_with(check_data)
+        self.obj._impl_object.create.assert_called_with(self.obj.__class__, check_data)
         assert dict(self.obj) == test_data
 
     def test_save_create_fill_model_with_result(self, randomize_record):
@@ -508,7 +508,7 @@ class TestModel:
 
         self.obj.save()
 
-        self.obj._impl_object.create.assert_called_with(check_data)
+        self.obj._impl_object.create.assert_called_with(self.obj.__class__, check_data)
 
     def test_save_update_dont_fill_model_if_returns_none(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -518,7 +518,7 @@ class TestModel:
 
         self.obj.save()
 
-        self.obj._impl_object.update.assert_called_with(check_data)
+        self.obj._impl_object.update.assert_called_with(self.obj.__class__, check_data)
         assert dict(self.obj) == test_data
 
     def test_save_update_fill_model_with_result(self, randomize_record):
@@ -541,7 +541,7 @@ class TestModel:
 
         self.obj.save()
 
-        self.obj._impl_object.update.assert_called_with(check_data)
+        self.obj._impl_object.update.assert_called_with(self.obj.__class__, check_data)
 
     def test_save_actually_use_raw_fields_data(self, randomize_record):
         # Actually test whether method doesn't use indexation or property access
@@ -592,7 +592,7 @@ class TestModel:
 
         self.obj.delete()
 
-        self.obj._impl_object.delete.assert_called_once_with(*check_data)
+        self.obj._impl_object.delete.assert_called_once_with(self.obj.__class__, *check_data)
 
     def test_delete_set_deleted_flag(self, randomize_record):
         test_data = randomize_record(dict(self.obj))
@@ -633,7 +633,7 @@ class TestModel:
 
         res = self.obj.get_list(filters, sorts, pagination)
 
-        self.obj._impl_object.get_list.assert_called_once_with(filters, sorts, pagination)
+        self.obj._impl_object.get_list.assert_called_once_with(self.obj.__class__, filters, sorts, pagination)
 
     def test_get_list_returns_impl_method_result(self):
         self.obj._impl_object.get_list = Mock()

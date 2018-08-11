@@ -9,7 +9,7 @@ class TestImpl:
 
     def test_get(self):
         with pytest.raises(NotImplementedError):
-            self.obj.get('id', 1234)
+            self.obj.get(object, 'id', 1234)
 
     def test_create(self):
         fields = {
@@ -20,7 +20,7 @@ class TestImpl:
             }
         }
         with pytest.raises(NotImplementedError):
-            self.obj.create(fields)
+            self.obj.create(object, fields)
 
     def test_update(self):
         fields = {
@@ -31,12 +31,12 @@ class TestImpl:
             }
         }
         with pytest.raises(NotImplementedError):
-            self.obj.update('id', 1234, fields)
+            self.obj.update(object, 'id', 1234, fields)
 
     def test_delete(self):
         with pytest.raises(NotImplementedError):
-            self.obj.delete('id', 1234)
+            self.obj.delete(object, 'id', 1234)
 
     def test_get_list(self):
         with pytest.raises(NotImplementedError):
-            self.obj.get_list(None, None, None)
+            self.obj.get_list(object, None, None, None)

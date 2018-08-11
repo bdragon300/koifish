@@ -209,9 +209,9 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         data = {k: self._data.get(v) for k, v in self._request_fields.items()}
 
         if self[self.primary_key] is None:
-            res = self._impl_object.create(data)
+            res = self._impl_object.create(self.__class__, data)
         else:
-            res = self._impl_object.update(data)
+            res = self._impl_object.update(self.__class__, data)
 
         # Update model with returned data if any
         # Reduce result dict according with fields since it may contain extra keys
@@ -237,7 +237,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         if pk_val is None:
             raise ModelError('Primary key is not set')
 
-        self._impl_object.delete(pk, pk_val)
+        self._impl_object.delete(self.__class__, pk, pk_val)
 
         self._deleted = True
 
@@ -251,7 +251,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         :param pagination: Pagination object
         :return: list with record dicts
         """
-        return self._impl_object.get_list(filters, sorts, pagination)
+        return self._impl_object.get_list(self.__class__, filters, sorts, pagination)
 
     def update(self, *args, **kwargs):
         """This method updates the `model` fields values with the given `dict`.
@@ -312,7 +312,7 @@ class BaseModel(booby.models.Model, metaclass=ModelMeta):
         :param pk_val: primary key value
         :return: record dict
         """
-        data = self._impl_object.get(pk, pk_val)  # type: dict
+        data = self._impl_object.get(self.__class__, pk, pk_val)  # type: dict
         if not data:
             raise NotFoundError("Cannot find record with {}='{}'".format(pk, pk_val))
 

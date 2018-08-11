@@ -115,7 +115,7 @@ class TestManyToOne:
         myobj.choice_mto_field = my_val
         res = myobj.choice_mto_field
 
-        assert self.test_impl_obj.get_list.call_args[0][0] == check_data
+        assert self.test_impl_obj.get_list.call_args[0][1] == check_data
 
     def test_get_return_the_first_element(self, model_stubs, target_records):
         self.test_impl_obj.get_list.return_value = target_records

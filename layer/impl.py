@@ -15,26 +15,29 @@ class BaseModelImpl:
     """
     Model implementation with data manipulating methods
     """
-    def get(self, pk, pk_value, **kwargs):
+    def get(self, model_cls, pk, pk_value, **kwargs):
         """
         Retrieve one record by primary key
+        :param model_cls: model class which object initiated the call
         :param pk: primary key name
         :param pk_value: primary key value
         :return: record dict
         """
         raise NotImplementedError
 
-    def create(self, data, **kwargs):
+    def create(self, model_cls, data, **kwargs):
         """
         Create new record with data from kwargs. Returned dict (if any) is treated as created record
+        :param model_cls: model class which object initiated the call
         :param data: record dict
         :return: None or dict with created record
         """
         raise NotImplementedError
 
-    def update(self, pk, pk_value, data, **kwargs):
+    def update(self, model_cls, pk, pk_value, data, **kwargs):
         """
         Update record with given primary key. Returned dict (if any) is treated as updated record
+        :param model_cls: model class which object initiated the call
         :param pk: primary key name
         :param pk_value: primary key value
         :param data: record dict
@@ -42,18 +45,20 @@ class BaseModelImpl:
         """
         raise NotImplementedError
 
-    def delete(self, pk, pk_val, **kwargs):
+    def delete(self, model_cls, pk, pk_val, **kwargs):
         """
         Delete record by primary key
+        :param model_cls: model class which object initiated the call
         :param pk: primary key name
         :param pk_val: primary key value
         :return:
         """
         raise NotImplementedError
 
-    def get_list(self, filters, sorts, pagination, **kwargs) -> ListResponse:
+    def get_list(self, model_cls, filters, sorts, pagination, **kwargs) -> ListResponse:
         """
         Get records list using given restrictions
+        :param model_cls: model class which object initiated the call
         :param filters: Filters object
         :param sorts: Sorts object
         :param pagination: Pagination object
