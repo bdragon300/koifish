@@ -24,6 +24,7 @@ class BaseAdapter(metaclass=ABCMeta):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # TODO: catch all exceptions and turn out to AdapterError
         return self.terminate()
 
     @abstractmethod
