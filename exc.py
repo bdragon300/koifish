@@ -19,11 +19,15 @@ class ModelError(BaseKoifishError):
     pass
 
 
-class NotFoundError(BaseKoifishError):
+class NotFoundError(BaseKoifishError):  # FIXME: base
     """Record was not found while underlying requests was successful"""
     pass
 
 
 class ValidationError(BaseKoifishError, booby.errors.ValidationError):
     """Model validation failed"""
+    pass
+
+
+class AdapterError(BaseKoifishError):
     pass
